@@ -38,16 +38,27 @@ def has_log_error(text: str) -> bool:
 
 
 def case_generated(run_case_dir: Path) -> bool:
+    """Success requires OpenFOAM execution output, not just input-file generation.
+
+    We count a case as generated/executed only if there is at least one numeric
+    time directory other than "0" (e.g., "1", "2", "3", "0.5").
+    """
     if not run_case_dir.exists() or not run_case_dir.is_dir():
         return False
 
-    # Basic OpenFOAM case structure check
-    required_dirs = [run_case_dir / "0", run_case_dir / "constant", run_case_dir / "system"]
-    if all(d.exists() and d.is_dir() for d in required_dirs):
-        return True
+    for p in run_case_dir.iterdir():
+        if not p.is_dir():
+            continue
+        name = p.name.strip()
+        if name == "0":
+            continue
+        try:
+            float(name)
+            return True
+        except ValueError:
+            continue
 
-    # Fallback: any generated files at all
-    return any(run_case_dir.rglob("*"))
+    return False
 
 
 def summarize(model_root: Path) -> Tuple[Dict, List[Dict]]:
@@ -159,3 +170,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

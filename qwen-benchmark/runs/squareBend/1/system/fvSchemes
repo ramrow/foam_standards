@@ -1,0 +1,59 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss linear;
+    grad(U)         Gauss linear;
+    grad(T)         Gauss linear;
+    grad(k)         Gauss linear;
+    grad(epsilon)   Gauss linear;
+}
+
+divSchemes
+{
+    default         Gauss linear;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    div(phi,T)      Gauss linearUpwind grad(T);
+    div(phi,k)      Gauss linearUpwind grad(k);
+    div(phi,epsilon) Gauss linearUpwind grad(epsilon);
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}
+
+fluxRequired
+{
+    default         no;
+    p               yes;
+    T               yes;
+    k               yes;
+    epsilon         yes;
+}
+
+// ************************************************************************* //

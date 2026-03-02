@@ -1,0 +1,389 @@
+<index>
+case name: counterFlowFlame2D
+case domain: combustion
+case category: laminar
+case solver: reactingFoam
+</index>
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [Ydefault, H2O, p, CH4, CO2, U, T, O2, alphat, N2]</dir>
+<dir>directory name: constant. File names in this directory: [combustionProperties, momentumTransport, chemistryProperties, physicalProperties, thermo.compressibleGas, reactions]</dir>
+</directory_structure>
+
+
+Similar cases are ordered, with smaller numbers indicating greater similarity. For example, similar_case_1 is more similar than similar_case_2, and similar_case_2 is more similar than similar_case_3.
+<similar_case_1><index>
+case name: counterFlowFlame2D_GRI
+case domain: combustion
+case category: laminar
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [Ydefault, H2O, p, CH4, CO2, U, T, O2, alphat, N2]</dir>
+<dir>directory name: constant. File names in this directory: [thermo.compressibleGasGRI, combustionProperties, reactionsGRI, momentumTransport, chemistryProperties, physicalProperties, dynamicMeshDict]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+
+runApplication $(getApplication)
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_1>
+
+
+<similar_case_2><index>
+case name: smallPoolFire2D
+case domain: combustion
+case category: RAS
+case solver: buoyantReactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, fvSchemes, blockMeshDict, createPatchDict]</dir>
+<dir>directory name: 0. File names in this directory: [G, Ydefault, p_rgh, soot, p, ph_rgh.orig, CH4, k, IDefault, U, nut, T, FSDomega, O2, alphat, N2]</dir>
+<dir>directory name: constant. File names in this directory: [g, radiationProperties, reaction, combustionProperties, fvModels, momentumTransport, physicalProperties, thermo.compressibleGas, pRef, hRef]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication createPatch -overwrite
+runApplication $(getApplication)
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_2>
+
+
+<similar_case_3><index>
+case name: aachenBomb
+case domain: combustion
+case category: Lagrangian
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [Ydefault, p, epsilon, Qdot, k, U, nut, T, O2, alphat, N2]</dir>
+<dir>directory name: chemkin. File names in this directory: [therm.dat, chem.inp, transportProperties]</dir>
+<dir>directory name: constant. File names in this directory: [g, combustionProperties, fvModels, cloudProperties, momentumTransport, chemistryProperties, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication chemkinToFoam \
+               chemkin/chem.inp chemkin/therm.dat chemkin/transportProperties \
+               constant/reactions constant/speciesThermo
+
+runApplication blockMesh
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_3>
+
+
+<similar_case_4><index>
+case name: SandiaD_LTS
+case domain: combustion
+case category: RAS
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, fvSchemes, controlDict.orig, blockMeshDict, setFieldsDict]</dir>
+<dir>directory name: 0. File names in this directory: [G, Ydefault, CO, H2O, N2.orig, p, CH4.orig, epsilon, H2, O, CO2, O2.orig, k, OH, U, nut, T.orig, H, alphat]</dir>
+<dir>directory name: chemkin. File names in this directory: [thermo30.dat, grimech30.dat, transportProperties]</dir>
+<dir>directory name: constant. File names in this directory: [g, radiationProperties, combustionProperties, thermo.compressibleGasGRI.orig, fvModels, momentumTransport, physicalProperties, reactionsGRI.orig, chemistryProperties.orig]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication chemkinToFoam \
+               chemkin/grimech30.dat chemkin/thermo30.dat chemkin/transportProperties \
+               constant/reactionsGRI constant/thermo.compressibleGasGRI
+
+runApplication blockMesh
+runApplication setFields
+
+if ! isTest $@
+then
+    # Run the application without chemistry until 1500 to let the flow develop
+    runApplication -a foamDictionary -entry "startTime" -set "0" system/controlDict
+    runApplication -a foamDictionary -entry "writeInterval" -set "1500" system/controlDict
+    runApplication -a foamDictionary -entry "endTime" -set "1500" system/controlDict
+    runApplication -a foamDictionary -entry "chemistry" -set "off" constant/chemistryProperties
+
+    runApplication $application
+
+    # Run with chemistry until flame reach its full size
+    runApplication -a foamDictionary -entry "startTime" -set "1500" system/controlDict
+    runApplication -a foamDictionary -entry "writeInterval" -set "100" system/controlDict
+    runApplication -a foamDictionary -entry "endTime" -set "5000" system/controlDict
+    runApplication -a foamDictionary -entry "chemistry" -set "on" constant/chemistryProperties
+fi
+
+runApplication -o $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_4>
+
+
+<similar_case_5><index>
+case name: membrane
+case domain: combustion
+case category: RAS
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, meshQualityDict, controlDict, createBafflesDict, fvSchemes, snappyHexMeshDict, blockMeshDict, setFieldsDict]</dir>
+<dir>directory name: 0. File names in this directory: [include, Ydefault, N2.orig, p, CH4.orig, epsilon, O2.orig, k, U, nut, T, alphat]</dir>
+<dir>directory name: constant. File names in this directory: [combustionProperties, momentumTransport, physicalProperties, thermo.compressibleGas]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+cd ${0%/*} || exit 1
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication snappyHexMesh -overwrite
+runApplication createBaffles -overwrite
+
+runApplication setFields
+
+runApplication reactingFoam
+
+</allrun_script></similar_case_5>
+
+
+<similar_case_6><index>
+case name: smallPoolFire3D
+case domain: combustion
+case category: RAS
+case solver: buoyantReactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, decomposeParDict, fvSchemes, blockMeshDict, createPatchDict]</dir>
+<dir>directory name: 0. File names in this directory: [G, Ydefault, p_rgh, p, ph_rgh.orig, CH4, k, IDefault, U, nut, T, O2, alphat, N2]</dir>
+<dir>directory name: constant. File names in this directory: [g, radiationProperties, reaction, combustionProperties, fvModels, momentumTransport, physicalProperties, thermo.compressibleGas, pRef, hRef]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication topoSet
+runApplication createPatch -overwrite
+runApplication decomposePar -force
+runParallel $application
+runApplication reconstructPar
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_6>
+
+
+<similar_case_7><index>
+case name: splashPanel
+case domain: combustion
+case category: Lagrangian
+case solver: buoyantReactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, decomposeParDict, fvSchemes, blockMeshDict, extrudeToRegionMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [H2O, p_rgh, p, U, T, O2, N2]</dir>
+<dir>directory name: constant. File names in this directory: [parcelInjectionProperties, g, combustionProperties, speciesThermo, fvModels, cloudProperties, momentumTransport, physicalProperties, surfaceFilmProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication extrudeToRegionMesh -overwrite
+
+paraFoam -touchAll
+
+runApplication $(getApplication)
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_7>
+
+
+<similar_case_8><index>
+case name: cylinder
+case domain: combustion
+case category: Lagrangian
+case solver: buoyantReactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, decomposeParDict, fvSchemes, blockMeshDict, extrudeToRegionMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [H2O, p_rgh, p, U, T, O2, N2]</dir>
+<dir>directory name: constant. File names in this directory: [parcelInjectionProperties, g, combustionProperties, speciesThermo, fvModels, cloudProperties, momentumTransport, physicalProperties, surfaceFilmProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+./Allmesh
+
+application=$(getApplication)
+
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_8>
+
+
+<similar_case_9><index>
+case name: filter
+case domain: combustion
+case category: Lagrangian
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, createBafflesDict, topoSetDict, decomposeParDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [G, H2O, p, epsilon, k, U, nut, T, O2, alphat, N2]</dir>
+<dir>directory name: constant. File names in this directory: [parcelInjectionProperties, g, combustionProperties, speciesThermo, fvModels, cloudProperties, momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application=$(getApplication)
+
+# create mesh
+runApplication blockMesh
+
+# create sets
+runApplication topoSet
+
+# create baffles and fields
+runApplication createBaffles -overwrite
+
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_9>
+
+
+<similar_case_10><index>
+case name: DLR_A_LTS
+case domain: combustion
+case category: RAS
+case solver: reactingFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict, setFieldsDict]</dir>
+<dir>directory name: 0. File names in this directory: [G, Ydefault, H2O, p, epsilon, H2, CH4, k, U, nut, T.orig, O2, alphat, N2]</dir>
+<dir>directory name: chemkin. File names in this directory: [thermo30.dat, grimech30.dat, transportProperties]</dir>
+<dir>directory name: constant. File names in this directory: [g, combustionProperties, thermo.compressibleGasGRI.orig, momentumTransport, chemistryProperties, physicalProperties, reactionsGRI.orig]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication chemkinToFoam \
+               chemkin/grimech30.dat chemkin/thermo30.dat chemkin/transportProperties \
+               constant/reactionsGRI constant/thermo.compressibleGasGRI
+
+runApplication blockMesh
+runApplication setFields
+runApplication decomposePar -force
+runParallel $application
+runApplication reconstructPar
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_10>
+
+

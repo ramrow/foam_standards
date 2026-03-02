@@ -1,0 +1,76 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// 3D geometry spanning from -0.15242 m to 0.3048 m in x-direction,
+// 0 m to 0.1524 m in y-direction, and -0.005 m to 0.005 m in z-direction
+convertToMeters 1;
+
+vertices
+(
+    (-0.15242 -0.005 -0.005)
+    (0.3048 -0.005 -0.005)
+    (0.3048 0.1524 -0.005)
+    (-0.15242 0.1524 -0.005)
+    (-0.15242 -0.005 0.005)
+    (0.3048 -0.005 0.005)
+    (0.3048 0.1524 0.005)
+    (-0.15242 0.1524 0.005)
+);
+
+// Mesh resolution: 20 cells in x, 10 in y, 1 in z
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (20 10 1) simpleGrading (1 1 1)
+);
+
+edges
+();
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    wedge
+    {
+        type wedge;
+        faces
+        (
+            (0 1 5 4)
+            (3 7 6 2)
+        );
+    }
+    walls
+    {
+        type wall;
+        faces
+        (
+            (0 3 2 1)
+            (4 5 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+();
+
+// ************************************************************************* //

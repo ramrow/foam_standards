@@ -1,0 +1,57 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    "h.*"
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "gh.*"
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "U.*"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+}
+
+PIMPLE
+{
+    nOuterCorrectors  1;
+    nCorrectors       2;
+    nNonOrthogonalCorrectors 0;
+    momentumPredictor yes;
+    transonic         no;
+    turbOnFinalIter   no;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        "h.*"           0.3;
+        "gh.*"          0.3;
+        "U.*"           0.7;
+    }
+}
+
+// ************************************************************************* //

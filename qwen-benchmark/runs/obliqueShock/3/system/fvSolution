@@ -1,0 +1,91 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    "rho.*"
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "rhoU"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "rhoE"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    p
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    T
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+
+    pRefCell 0;
+    pRefValue 0;
+
+    residualControl
+    {
+        "p.*" 1e-04;
+        "rho" 1e-04;
+        "rhoU" 1e-04;
+        "rhoE" 1e-04;
+        "T" 1e-04;
+    }
+}
+
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors 1;
+    nNonOrthogonalCorrectors 0;
+    momentumPredictor yes;
+    turbOnFinalIterOnly no;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        "rho.*" 0.7;
+        "rhoU" 0.7;
+        "rhoE" 0.7;
+        p 0.3;
+        T 0.7;
+    }
+}
+
+// ************************************************************************* //

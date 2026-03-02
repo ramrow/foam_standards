@@ -1,0 +1,73 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    p
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-06;
+        relTol          0.01;
+    }
+
+    pFinal
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-06;
+        relTol          0;
+    }
+
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-06;
+        relTol          0.01;
+    }
+
+    UFinal
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-06;
+        relTol          0;
+    }
+
+    phi
+    {
+        solver          GaussSeidel;
+        tolerance       1e-08;
+        relTol          0.01;
+    }
+}
+
+PIMPLE
+{
+    nOuterCorrectors   1;
+    nCorrectors        2;
+    nNonOrthogonalCorrectors 0;
+    momentumPredictor  on;
+    transonic          off;
+    consistent         off;
+    frozenFlow         off;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        ".*"            0.7;
+    }
+}
+
+// ************************************************************************* //

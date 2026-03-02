@@ -1,0 +1,82 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Define a 3D geometry in x, y, z directions:
+// x: -0.15242 m to 0.3048 m
+// y: 0 m to 0.1524 m
+// z: -0.005 m to 0.005 m
+convertToMeters 1;
+
+vertices
+(
+    (-0.15242 -0.005 -0.005)
+    (0.3048 -0.005 -0.005)
+    (0.3048 0.1524 -0.005)
+    (-0.15242 0.1524 -0.005)
+    (-0.15242 -0.005 0.005)
+    (0.3048 -0.005 0.005)
+    (0.3048 0.1524 0.005)
+    (-0.15242 0.1524 0.005)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (100 100 100) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+
+    // Wedge boundary condition for 2D simulation in the y-direction
+    wedge
+    {
+        type wedge;
+        faces
+        (
+            (0 1 5 4)
+            (3 7 6 2)
+        );
+    }
+
+    // Empty boundary condition for front and back surfaces
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+            (4 5 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

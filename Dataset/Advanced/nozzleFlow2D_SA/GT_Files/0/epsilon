@@ -1,0 +1,55 @@
+/*--------------------------------*- C++ -*----------------------------------*\\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Website:  https://openfoam.org                  |
+|    \\/     M anipulation  |                                                 |
+\\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    object      epsilon;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 2 -3 0 0 0 0];   
+
+internalField   uniform 1e-5;       // Initial dissipation rate
+
+boundaryField
+{
+    axis
+    {
+        type            empty;
+    }
+
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 1e-5;   // Small turbulence at inlet
+    }
+
+    walls
+    {
+        type            epsilonWallFunction;   
+        value           uniform 1e-11;
+    }
+
+    atmosphere
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            wedge;
+    }
+
+    back
+    {
+        type            wedge;
+    }
+}
+
+// ************************************************************************* //
+

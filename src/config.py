@@ -30,7 +30,9 @@ class Config:
         },
         "input-writer": {
             "model_provider": "vllm",
-            "model_version": "finalform/foamQwen-30B",
+            # LoRA alias served on port 8001 via:
+            # --enable-lora --lora-modules foamqwen=finalform/foamQwen-30B
+            "model_version": "foamqwen",
             "temperature": 0.3,
             "base_url": "http://127.0.0.1:8001/v1",
             "max_tokens": 4096,

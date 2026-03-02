@@ -18,7 +18,6 @@ class Config:
     input_writer_generation_mode: str = "sequential_dependency"
     reuse_generated_dir: str = ""
 
-    # foambench-style multi-service config
     selected_service: str = "general"
     models: dict = field(default_factory=lambda: {
         "general": {
@@ -30,21 +29,17 @@ class Config:
         },
         "input-writer": {
             "model_provider": "vllm",
-            # LoRA alias served on port 8001 via:
-            # --enable-lora --lora-modules foamqwen=finalform/foamQwen-30B
             "model_version": "foamqwen",
-            "temperature": 0.3,
-            "base_url": "http://127.0.0.1:8001/v1",
-            "max_tokens": 4096,
+            "temperature": 0.1,
+            "base_url": "http://127.0.0.1:8000/v1",
+            "max_tokens": 2048,
         },
     })
 
-    # Backward-compatible single-model fields used by runtime
     model_provider: str = "vllm"
     model_version: str = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
     temperature: float = 0.5
 
-    # Embedding config kept for retrieval path
     embedding_provider: str = "huggingface"
     embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
 
@@ -53,7 +48,6 @@ class Config:
             v = os.getenv(key)
             return v.strip() if isinstance(v, str) and v.strip() else None
 
-        # choose service profile first
         service_env = _env_nonempty("FOAMAGENT_MODEL_SERVICE")
         if service_env and service_env in self.models:
             self.selected_service = service_env
@@ -64,7 +58,6 @@ class Config:
             self.model_version = prof.get("model_version", self.model_version)
             self.temperature = float(prof.get("temperature", self.temperature))
 
-        # explicit overrides win
         provider_env = _env_nonempty("FOAMAGENT_MODEL_PROVIDER")
         version_env = _env_nonempty("FOAMAGENT_MODEL_VERSION")
         temp_env = _env_nonempty("FOAMAGENT_TEMPERATURE")
@@ -83,3 +76,4 @@ class Config:
         print(f"[Config] model_provider={self.model_provider}")
         print(f"[Config] model_version={self.model_version}")
         print(f"[Config] temperature={self.temperature}")
+

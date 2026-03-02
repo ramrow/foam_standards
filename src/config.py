@@ -40,8 +40,8 @@ class Config:
     model_version: str = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
     temperature: float = 0.5
 
-    embedding_provider: str = "huggingface"
-    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-small"
 
     def __post_init__(self) -> None:
         def _env_nonempty(key: str):

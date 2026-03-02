@@ -48,7 +48,13 @@ def get_embedding_model(config: Optional[Config] = None):
             raise ImportError(
                 "langchain-huggingface is not installed. Please install it to use HuggingFace embeddings."
             )
-        return HuggingFaceEmbeddings(model_name=model)
+        # Previous CPU/default behavior:
+        # return HuggingFaceEmbeddings(model_name=model)
+        # Force embeddings onto GPU:
+        return HuggingFaceEmbeddings(
+            model_name=model,
+            model_kwargs={"device": "cuda"},
+        )
     if provider == "ollama":
         from langchain_ollama import OllamaEmbeddings
         return OllamaEmbeddings(model=model)

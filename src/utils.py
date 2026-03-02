@@ -521,6 +521,7 @@ class LLMService:
                 openai_api_key="EMPTY",
                 openai_api_base=os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
                 temperature=self.temperature,
+                max_tokens=16384
             )
         elif self.model_provider.lower() in {"huggingface", "hf"}:
             raise ValueError("Direct huggingface runtime is not enabled in this v2.0 setup. Use provider=\"vllm\" for benchmarking.")

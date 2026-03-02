@@ -1,8 +1,9 @@
-import os
+﻿import os
 import re
 from typing import Dict, List, Any, Optional
 import shutil
-from utils import save_file, parse_context, retrieve_faiss, FoamPydantic, FoamfilePydantic, scan_case_directory, read_case_foamfiles, read_file
+from copy import deepcopy
+from utils import save_file, parse_context, retrieve_faiss, FoamPydantic, FoamfilePydantic, scan_case_directory, read_case_foamfiles, read_file, LLMService
 from . import global_llm_service
 
 
@@ -32,6 +33,7 @@ def initial_write(
     searchdocs: int = 2,
     similar_case_advice: Optional[Any] = None,
     reuse_generated_dir: str = "",
+    config: Optional[Any] = None,
 ) -> Dict[str, Any]:
     """
     Generate OpenFOAM files from scratch based on user requirements and subtasks.
@@ -90,6 +92,13 @@ def initial_write(
         )
 
     subtasks = sorted(subtasks, key=compute_priority)
+    # default to global model, but allow dedicated model for input-writer node
+    llm_for_writing = global_llm_service
+    if config is not None and hasattr(config, "models") and isinstance(config.models, dict) and "input-writer" in config.models:
+        cfg = deepcopy(config)
+        cfg.selected_service = "input-writer"
+        llm_for_writing = LLMService(cfg)
+
     written_files = []
     dir_structure = {}
 
@@ -103,7 +112,7 @@ def initial_write(
         "- Cross-check field names between different files to avoid mismatches.\n"
         "- Ensure units and dimensions are correct** for all physical variables.\n"
         f"- Ensure case solver settings are consistent with the user's requirements. Available solvers are: {{case_solver}}.\n"
-        "Provide only the code—no explanations, comments, or additional text."
+        "Provide only the codeâ€”no explanations, comments, or additional text."
     )
 
     def _build_prompts(file_name: str, folder_name: str, written_files_ctx: List[FoamfilePydantic]) -> tuple[str, str]:
@@ -173,10 +182,10 @@ def initial_write(
             # Avoid shared global LLM instance in parallel mode.
             from utils import LLMService
             from config import Config
-            llm = LLMService(Config())
+            llm = llm_for_writing
             generation_response = llm.invoke(code_user_prompt, code_system_prompt)
         else:
-            generation_response = global_llm_service.invoke(code_user_prompt, code_system_prompt)
+            generation_response = llm_for_writing.invoke(code_user_prompt, code_system_prompt)
 
         code_context = parse_context(generation_response)
         save_file(file_path, code_context)
@@ -310,7 +319,7 @@ def build_allrun(
     command_system_prompt = (
         "You are an expert in OpenFOAM. The user will provide a list of available commands. "
         "Your task is to generate only the necessary OpenFOAM commands required to create an Allrun script for the given user case, based on the provided directory structure. "
-        "Return only the list of commands—no explanations, comments, or additional text."
+        "Return only the list of commandsâ€”no explanations, comments, or additional text."
     )
 
     if mesh_type == "custom_mesh":
@@ -321,7 +330,7 @@ def build_allrun(
         f"Case directory structure: {dir_structure}\n"
         f"User case information: {case_info}\n"
         f"Reference Allrun scripts from similar cases: {allrun_reference}\n"
-        "Generate only the required OpenFOAM command list—no extra text."
+        "Generate only the required OpenFOAM command listâ€”no extra text."
     )
 
     if mesh_type == "custom_mesh":
@@ -518,3 +527,4 @@ def rewrite_files(
         "foamfiles": updated_foamfiles,
         "error_logs": [],
     }
+

@@ -25,6 +25,15 @@ class Config:
             "model_provider": "vllm",
             "model_version": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
             "temperature": 0.5,
+            "base_url": "http://127.0.0.1:8000/v1",
+            "max_tokens": 2048,
+        },
+        "input-writer": {
+            "model_provider": "vllm",
+            "model_version": "finalform/foamQwen-30B",
+            "temperature": 0.3,
+            "base_url": "http://127.0.0.1:8001/v1",
+            "max_tokens": 4096,
         },
     })
 

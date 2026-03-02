@@ -82,6 +82,7 @@ def _initial_write_mode(state):
         generation_mode=getattr(config, "input_writer_generation_mode", "sequential_dependency"),
         similar_case_advice=state.get("similar_case_advice"),
         reuse_generated_dir=getattr(config, "reuse_generated_dir", ""),
+        config=config,
     )
 
     dir_structure = write_out["dir_structure"]

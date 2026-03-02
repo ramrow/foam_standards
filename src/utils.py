@@ -459,10 +459,18 @@ class LLMService:
         )
 
     def __init__(self, config: object):
-        self.model_version = getattr(config, "model_version", "gpt-4o")
-        self.temperature = getattr(config, "temperature", 0)
-        self.model_provider = getattr(config, "model_provider", "openai")
         self._config = config
+
+        # Select model profile by service when available
+        selected_service = getattr(config, "selected_service", "general")
+        models = getattr(config, "models", None)
+        profile = models.get(selected_service, {}) if isinstance(models, dict) else {}
+
+        self.model_version = profile.get("model_version", getattr(config, "model_version", "gpt-4o"))
+        self.temperature = float(profile.get("temperature", getattr(config, "temperature", 0)))
+        self.model_provider = profile.get("model_provider", getattr(config, "model_provider", "openai"))
+        self.base_url = profile.get("base_url", os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"))
+        self.max_tokens = int(profile.get("max_tokens", 2048))
         
         # Initialize statistics
         self.total_calls = 0
@@ -519,9 +527,9 @@ class LLMService:
             self.llm = ChatOpenAI(
                 model=self.model_version,
                 openai_api_key="EMPTY",
-                openai_api_base=os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"),
+                openai_api_base=self.base_url,
                 temperature=self.temperature,
-                max_tokens=16384
+                max_tokens=self.max_tokens
             )
         elif self.model_provider.lower() in {"huggingface", "hf"}:
             raise ValueError("Direct huggingface runtime is not enabled in this v2.0 setup. Use provider=\"vllm\" for benchmarking.")

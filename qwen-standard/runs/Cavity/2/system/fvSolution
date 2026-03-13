@@ -9,52 +9,20 @@ FoamFile
 
 solvers
 {
-    "alpha.water.*"
-    {
-        nAlphaCorr      2;
-        nAlphaSubCycles 1;
-
-        MULESCorr       yes;
-        nLimiterIter    3;
-
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-8;
-        relTol          0;
-    }
-
     "pcorr.*"
     {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-5;
-        relTol          0;
-    }
+        solver          GAMG;
+        smoother        DICGaussSeidel;
 
-    p
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-07;
-        relTol          0.05;
-        pRefCell        0;
-        pRefValue       0;
-    }
-
-    pFinal
-    {
-        $p;
+        tolerance       0.02;
         relTol          0;
     }
 
     p_rgh
     {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-07;
-        relTol          0.05;
-        pRefCell        0;
-        pRefValue       0;
+        $pcorr;
+        tolerance       1e-8;
+        relTol          0.01;
     }
 
     p_rghFinal
@@ -63,11 +31,17 @@ solvers
         relTol          0;
     }
 
-    "(U|k|omega).*"
+    "(U|k|epsilon)"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-06;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    "(U|k|epsilon)Final"
+    {
+        $U;
         relTol          0;
     }
 }
@@ -76,4 +50,6 @@ PISO
 {
     nCorrectors     2;
     nNonOrthogonalCorrectors 0;
+    pRefCell        0;
+    pRefValue       0;
 }

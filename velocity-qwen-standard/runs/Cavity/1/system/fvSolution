@@ -1,0 +1,79 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-07;
+        relTol          0.1;
+    }
+
+    pFinal
+    {
+        $p;
+        tolerance       1e-06;
+        relTol          0;
+    }
+
+    "(U|k|epsilon)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-06;
+        relTol          0.1;
+    }
+
+    "(U|k|epsilon)Final"
+    {
+        $U;
+        tolerance       1e-08;
+        relTol          0;
+    }
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+
+    residualControl
+    {
+        p               1e-2;
+        U               1e-4;
+        "(k|epsilon)"   1e-3;
+    }
+}
+
+PISO
+{
+    nCorrectors     1;
+    nNonOrthogonalCorrectors 0;
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;
+    }
+    equations
+    {
+        U               0.9;
+        k               0.5;
+        epsilon         0.5;
+    }
+}
+
+options
+{
+    // Add pRefCell to resolve reference cell error
+    pRefCell 0;
+    pRefValue 0;
+}

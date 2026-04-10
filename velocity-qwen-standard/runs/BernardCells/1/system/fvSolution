@@ -1,0 +1,64 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+
+
+solvers
+{
+    p_rgh
+    {
+        solver          GAMG;
+        smoother        DIC;
+        tolerance       1e-8;
+        relTol          0.01;
+    }
+
+    "(U|e|k|epsilon|omega)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    R
+    {
+        $U;
+        tolerance       1e-05;
+        relTol          0.1;
+    }
+
+    "(Yi|O2|N2|H2O).*"
+    {
+        $U;
+        relTol          0.1;
+    }
+}
+
+PIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+
+    residualControl
+    {
+        p_rgh           1e-2;
+        U               1e-4;
+        e               1e-2;
+
+        
+        "(k|epsilon|omega|R)" 1e-3;
+        "(Yi|O2|N2|H2O).*" 1e-3;
+    }
+}
+
+relaxationFactors
+{
+    equations
+    {
+        ".*" 1;
+    }
+}

@@ -1,0 +1,72 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+
+convertToMeters 1;
+
+vertices
+(
+    (-0.15242 0 -0.005)
+    ( 0.3048 0 -0.005)
+    ( 0.3048 0.1524 -0.005)
+    (-0.15242 0.1524 -0.005)
+
+    (-0.15242 0 0.005)
+    ( 0.3048 0 0.005)
+    ( 0.3048 0.1524 0.005)
+    (-0.15242 0.1524 0.005)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (20 10 1) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    bottom
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    top
+    {
+        type wall;
+        faces
+        (
+            (3 7 6 2)
+        );
+    }
+    frontAndBack
+    {
+        type wedge;
+        faces
+        (
+            (0 3 2 1)
+            (4 5 6 7)
+        );
+    }
+);

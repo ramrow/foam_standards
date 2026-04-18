@@ -26,7 +26,7 @@ class Config:
             "model_version": "Qwen/Qwen3.5-35B-A3B",
             "temperature": 0.6,
             "base_url": "http://127.0.0.1:8000/v1",
-            "max_tokens": 90000,
+            "max_tokens": 2048,
         }
     })
 

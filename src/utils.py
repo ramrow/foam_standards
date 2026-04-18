@@ -399,13 +399,16 @@ class _HFLocalChatWrapper:
 
     def _messages_to_prompt(self, messages: list[dict]) -> str:
         if hasattr(self._tok, "apply_chat_template"):
-            return self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            try:
+                return self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, enable_thinking=False)
+            except TypeError:
+                # Older transformers/tokenizers may not support enable_thinking
+                return self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         parts: list[str] = []
         for m in messages:
             parts.append(f"{m.get('role','user')}: {m.get('content','')}")
         parts.append("assistant:")
         return "\n".join(parts)
-
     @staticmethod
     def _extract_json_object(text: str) -> str:
         if not text:
@@ -1354,6 +1357,7 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 
 

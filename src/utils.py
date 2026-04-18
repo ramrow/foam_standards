@@ -411,11 +411,19 @@ class _HFLocalChatWrapper:
         if not text:
             raise ValueError("Empty response; expected JSON")
         s = text.strip()
+
+        # Strip common thinking sections while keeping final JSON
+        s = re.sub(r"<think>[\s\S]*?</think>", "", s, flags=re.IGNORECASE)
+        s = re.sub(r"(?is)^\s*thinking\s*process\s*:\s*[\s\S]*?(?=\{)", "", s)
+        s = re.sub(r"(?is)^\s*reasoning\s*:\s*[\s\S]*?(?=\{)", "", s)
+
         if s.startswith("```"):
             s = re.sub(r"^```[a-zA-Z0-9_-]*\n", "", s)
             s = re.sub(r"\n```\s*$", "", s).strip()
+
         if s.startswith("{") and s.endswith("}"):
             return s
+
         m = re.search(r"\{[\s\S]*\}", s)
         if not m:
             raise ValueError(f"Could not find a JSON object in response: {s[:200]}")
@@ -449,7 +457,7 @@ class _HFLocalChatWrapper:
                     except Exception as e:
                         repair = (
                             "Your previous output was not valid JSON for the requested schema. "
-                            "Return ONLY valid JSON (no markdown), no extra keys. "
+                            "Return ONLY valid JSON (no markdown), no extra keys, and no thinking or reasoning text. "
                             f"Error: {str(e)}\n\nPrevious output:\n{raw}"
                         )
                         patched = list(patched) + [{"role": "user", "content": repair}]
@@ -1346,6 +1354,7 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 
 

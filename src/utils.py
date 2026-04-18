@@ -430,7 +430,14 @@ class _HFLocalChatWrapper:
                 schema = pydantic_obj.model_json_schema()
                 schema_hint = "Return ONLY valid JSON (no markdown) matching this schema:\n" + str(schema)
                 patched = list(messages)
-                patched.insert(0, {"role": "system", "content": schema_hint})
+                # Some chat templates require exactly one system message at the beginning.
+                if patched and isinstance(patched[0], dict) and patched[0].get("role") == "system":
+                    patched[0] = {
+                        "role": "system",
+                        "content": f"{schema_hint}\n\n{patched[0].get('content','')}"
+                    }
+                else:
+                    patched.insert(0, {"role": "system", "content": schema_hint})
                 last_raw = ""
                 for _ in range(3):
                     resp = parent.invoke(patched)
@@ -1339,6 +1346,7 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 
 

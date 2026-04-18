@@ -478,7 +478,7 @@ class LLMService:
         self.model_version = profile.get("model_version", getattr(config, "model_version", "gpt-4o"))
         self.temperature = float(profile.get("temperature", getattr(config, "temperature", 0)))
         self.model_provider = profile.get("model_provider", getattr(config, "model_provider", "openai"))
-        self.base_url = profile.get("base_url", os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1"))
+        self.base_url = profile.get("base_url", None)
         self.max_tokens = int(profile.get("max_tokens", 2048))
         
         # Initialize statistics
@@ -1230,6 +1230,7 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 
 

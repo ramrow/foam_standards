@@ -25,7 +25,7 @@ class Config:
             "model_provider": "huggingface",
             "model_version": "Qwen/Qwen3.5-35B-A3B",
             "temperature": 0.6,
-            "base_url": "http://127.0.0.1:8000/v1",
+
             "max_tokens": 32768,
         }
     })
@@ -53,7 +53,7 @@ class Config:
         provider_env = _env_nonempty("FOAMAGENT_MODEL_PROVIDER")
         version_env = _env_nonempty("FOAMAGENT_MODEL_VERSION")
         temp_env = _env_nonempty("FOAMAGENT_TEMPERATURE")
-        base_url_env = _env_nonempty("FOAMAGENT_BASE_URL")
+
 
         if provider_env:
             self.model_provider = provider_env
@@ -66,14 +66,13 @@ class Config:
                 self.models["general"]["temperature"] = self.temperature
             except ValueError:
                 pass
-        if base_url_env:
-            self.models["general"]["base_url"] = base_url_env
 
         print(f"[Config] selected_service={self.selected_service}")
         print(f"[Config] model_provider={self.model_provider}")
         print(f"[Config] model_version={self.model_version}")
-        print(f"[Config] base_url={self.models['general']['base_url']}")
+
         print(f"[Config] temperature={self.temperature}")
+
 
 
 

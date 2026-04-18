@@ -3,7 +3,7 @@
 #SBATCH -n 1
 #SBATCH -p rpi
 #SBATCH -A rpi
-#SBATCH --gres=gpu:nvidia_h100_80gb_hbm3:4
+#SBATCH --gres=gpu:nvidia_h100_80gb_hbm3:1
 #SBATCH --cpus-per-task=32
 #SBATCH --time=08:00:00
 #SBATCH --output=%x_%j.out
@@ -29,3 +29,4 @@ python -u benchmark.py --model_tag "$PROJECT_TAG" --cases 1 2 3
 python -u summarize_benchmark.py --model_tag "$PROJECT_TAG" --save_json "$PROJECT_TAG/summary.json"
 
 echo "Done: $PROJECT_TAG"
+

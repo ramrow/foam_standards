@@ -340,6 +340,124 @@ class _CodexResponsesWrapper:
         return self._Resp("".join(chunks).strip())
 
 
+
+import threading
+
+_HF_PIPE_CACHE: Dict[str, Any] = {}
+_HF_TOK_CACHE: Dict[str, Any] = {}
+_HF_LOCKS: Dict[str, threading.Lock] = {}
+_HF_INIT_LOCK = threading.Lock()
+
+class _HFLocalChatWrapper:
+    class _Resp:
+        def __init__(self, content: str):
+            self.content = content
+
+    def __init__(self, model: str, temperature: float = 0.0, max_tokens: int = 2048):
+        self._model = model
+        self._temperature = float(temperature)
+        self._max_tokens = int(max_tokens)
+
+        try:
+            from transformers import AutoTokenizer
+        except Exception as e:
+            raise ImportError("model_provider='huggingface' requires transformers installed") from e
+
+        with _HF_INIT_LOCK:
+            tok = _HF_TOK_CACHE.get(model)
+            if tok is None:
+                tok = AutoTokenizer.from_pretrained(model, trust_remote_code=True)
+                _HF_TOK_CACHE[model] = tok
+            self._tok = tok
+
+            pipe = _HF_PIPE_CACHE.get(model)
+            if pipe is None:
+                torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+                pipe = hf_text_generation_pipeline(
+                    task="text-generation",
+                    model=model,
+                    tokenizer=model,
+                    device_map="auto",
+                    torch_dtype=torch_dtype,
+                    trust_remote_code=True,
+                    do_sample=True,
+                    temperature=self._temperature,
+                    max_new_tokens=self._max_tokens,
+                    return_full_text=False,
+                )
+                _HF_PIPE_CACHE[model] = pipe
+            self._pipe = pipe
+
+            lock = _HF_LOCKS.get(model)
+            if lock is None:
+                lock = threading.Lock()
+                _HF_LOCKS[model] = lock
+            self._lock = lock
+
+    def get_num_tokens(self, text: str) -> int:
+        return len(self._tok.encode(text or ""))
+
+    def _messages_to_prompt(self, messages: list[dict]) -> str:
+        if hasattr(self._tok, "apply_chat_template"):
+            return self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        parts: list[str] = []
+        for m in messages:
+            parts.append(f"{m.get('role','user')}: {m.get('content','')}")
+        parts.append("assistant:")
+        return "\n".join(parts)
+
+    @staticmethod
+    def _extract_json_object(text: str) -> str:
+        if not text:
+            raise ValueError("Empty response; expected JSON")
+        s = text.strip()
+        if s.startswith("```"):
+            s = re.sub(r"^```[a-zA-Z0-9_-]*\n", "", s)
+            s = re.sub(r"\n```\s*$", "", s).strip()
+        if s.startswith("{") and s.endswith("}"):
+            return s
+        m = re.search(r"\{[\s\S]*\}", s)
+        if not m:
+            raise ValueError(f"Could not find a JSON object in response: {s[:200]}")
+        return m.group(0)
+
+    def with_structured_output(self, pydantic_obj: Type[BaseModel]):
+        parent = self
+        class _StructuredWrapper:
+            def get_num_tokens(self, text: str) -> int:
+                return parent.get_num_tokens(text)
+            def invoke(self, messages):
+                schema = pydantic_obj.model_json_schema()
+                schema_hint = "Return ONLY valid JSON (no markdown) matching this schema:\n" + str(schema)
+                patched = list(messages)
+                patched.insert(0, {"role": "system", "content": schema_hint})
+                last_raw = ""
+                for _ in range(3):
+                    resp = parent.invoke(patched)
+                    raw = getattr(resp, "content", "")
+                    last_raw = raw
+                    try:
+                        json_text = parent._extract_json_object(raw)
+                        return pydantic_obj.model_validate_json(json_text)
+                    except Exception as e:
+                        repair = (
+                            "Your previous output was not valid JSON for the requested schema. "
+                            "Return ONLY valid JSON (no markdown), no extra keys. "
+                            f"Error: {str(e)}\n\nPrevious output:\n{raw}"
+                        )
+                        patched = list(patched) + [{"role": "user", "content": repair}]
+                raise ValueError(f"Failed to produce valid JSON after retries. Last output: {last_raw[:500]}")
+        return _StructuredWrapper()
+
+    def invoke(self, messages):
+        prompt = self._messages_to_prompt(messages)
+        with self._lock:
+            out = self._pipe(prompt)
+        text = ""
+        if isinstance(out, list) and len(out) > 0 and isinstance(out[0], dict):
+            text = out[0].get("generated_text", "")
+        return self._Resp((text or "").strip())
+
 class LLMService:
     @staticmethod
     def _load_codex_access_token_from_auth_json(auth_json_path: Path) -> str:
@@ -541,21 +659,12 @@ class LLMService:
                 max_tokens=self.max_tokens
             )
         elif self.model_provider.lower() in {"huggingface", "hf"}:
-            # Local HuggingFace runtime (no vLLM server required)
-            torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
-            text_gen = hf_text_generation_pipeline(
-                task="text-generation",
+            # Local HuggingFace runtime with robust structured-output handling
+            self.llm = _HFLocalChatWrapper(
                 model=self.model_version,
-                tokenizer=self.model_version,
-                device_map="auto",
-                torch_dtype=torch_dtype,
-                trust_remote_code=True,
-                max_new_tokens=self.max_tokens,
-                do_sample=True,
                 temperature=self.temperature,
+                max_tokens=self.max_tokens,
             )
-            hf_llm = HuggingFacePipeline(pipeline=text_gen)
-            self.llm = ChatHuggingFace(llm=hf_llm)
         elif self.model_provider.lower() == "ollama":
             try:
                 response = requests.get("http://localhost:11434/api/version", timeout=2)
@@ -1230,6 +1339,8 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
+
 
 
 

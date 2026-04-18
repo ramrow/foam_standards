@@ -13,38 +13,13 @@ set -euo pipefail
 cd /mnt/lustre/rpi/pxu10/criteria
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
 
-PROJECT_TAG="qwen3.5-35b-a3b-vllm"
-export VLLM_BASE_URL="http://127.0.0.1:8000/v1"
+PROJECT_TAG="qwen3.5-35b-a3b-hf"
+export FOAMAGENT_MODEL_PROVIDER="huggingface"
+export FOAMAGENT_MODEL_VERSION="Qwen/Qwen3.5-35B-A3B"
 
-vllm serve Qwen/Qwen3.5-35B-A3B \
-  --host 127.0.0.1 \
-  --port 8000 \
-  --tensor-parallel-size 1 \
-  --reasoning-parser qwen3 \
-  --dtype bfloat16 \
-  --api-key EMPTY \
-  --enable-auto-tool-choice \
-  --tool-call-parser hermes \
-  --max-model-len 32768 \
-  > vllm_server_${PROJECT_TAG}.log 2>&1 &
-
-VLLM_PID=$!
-trap 'kill "$VLLM_PID" 2>/dev/null || true' EXIT
-
-python - <<'PY'
-import time, requests
-for _ in range(240):
-    try:
-        r = requests.get("http://127.0.0.1:8000/v1/models", headers={"Authorization": "Bearer EMPTY"}, timeout=5)
-        if r.status_code == 200:
-            break
-    except Exception:
-        pass
-    time.sleep(5)
-else:
-    raise SystemExit(1)
-PY
+# Optional cache locations on cluster (adjust if needed)
+export HF_HOME="${HF_HOME:-/mnt/lustre/rpi/pxu10/.cache/huggingface}"
+export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-/mnt/lustre/rpi/pxu10/.cache/huggingface/transformers}"
 
 python benchmark.py --model_tag "$PROJECT_TAG" --cases 1 2 3
 python summarize_benchmark.py --model_tag "$PROJECT_TAG" --save_json "$PROJECT_TAG/summary.json"
-

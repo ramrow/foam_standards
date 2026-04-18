@@ -21,6 +21,9 @@ from botocore.exceptions import ClientError
 import shutil
 from config import Config
 from langchain_ollama import ChatOllama
+from transformers import pipeline as hf_text_generation_pipeline
+import torch
+from langchain_huggingface import HuggingFacePipeline, ChatHuggingFace
 try:
     from langchain_huggingface import HuggingFaceEmbeddings
 except ImportError:
@@ -538,7 +541,21 @@ class LLMService:
                 max_tokens=self.max_tokens
             )
         elif self.model_provider.lower() in {"huggingface", "hf"}:
-            raise ValueError("Direct huggingface runtime is not enabled in this v2.0 setup. Use provider=\"vllm\" for benchmarking.")
+            # Local HuggingFace runtime (no vLLM server required)
+            torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+            text_gen = hf_text_generation_pipeline(
+                task="text-generation",
+                model=self.model_version,
+                tokenizer=self.model_version,
+                device_map="auto",
+                torch_dtype=torch_dtype,
+                trust_remote_code=True,
+                max_new_tokens=self.max_tokens,
+                do_sample=True,
+                temperature=self.temperature,
+            )
+            hf_llm = HuggingFacePipeline(pipeline=text_gen)
+            self.llm = ChatHuggingFace(llm=hf_llm)
         elif self.model_provider.lower() == "ollama":
             try:
                 response = requests.get("http://localhost:11434/api/version", timeout=2)
@@ -645,10 +662,13 @@ class LLMService:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": user_prompt})
         
-        # Calculate prompt tokens
+        # Calculate prompt tokens (not all providers implement get_num_tokens)
         prompt_tokens = 0
-        for message in messages:
-            prompt_tokens += self.llm.get_num_tokens(message["content"])
+        try:
+            for message in messages:
+                prompt_tokens += self.llm.get_num_tokens(message["content"])
+        except Exception:
+            prompt_tokens = sum(len(m["content"]) // 4 for m in messages)
         
         retry_count = 0
         while True:
@@ -669,7 +689,10 @@ class LLMService:
 
                 # Calculate completion tokens
                 response_content = str(response)
-                completion_tokens = self.llm.get_num_tokens(response_content)
+                try:
+                    completion_tokens = self.llm.get_num_tokens(response_content)
+                except Exception:
+                    completion_tokens = len(response_content) // 4
                 total_tokens = prompt_tokens + completion_tokens
                 
                 # Update statistics
@@ -1207,4 +1230,8 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
+
+
+
 

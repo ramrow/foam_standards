@@ -22,15 +22,15 @@ class Config:
     selected_service: str = "general"
     models: dict = field(default_factory=lambda: {
         "general": {
-            "model_provider": "vllm",
+            "model_provider": "huggingface",
             "model_version": "Qwen/Qwen3.5-35B-A3B",
             "temperature": 0.6,
             "base_url": "http://127.0.0.1:8000/v1",
-            "max_tokens": 2048,
+            "max_tokens": 32768,
         }
     })
 
-    model_provider: str = "vllm"
+    model_provider: str = "huggingface"
     model_version: str = "Qwen/Qwen3.5-35B-A3B"
     temperature: float = 0.6
 
@@ -74,3 +74,6 @@ class Config:
         print(f"[Config] model_version={self.model_version}")
         print(f"[Config] base_url={self.models['general']['base_url']}")
         print(f"[Config] temperature={self.temperature}")
+
+
+

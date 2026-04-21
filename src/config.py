@@ -24,8 +24,8 @@ class Config:
     case_id: str = ""           # e.g. "Basic/Cavity/1" or "Advanced/Cavity_LES"
 
     # Embedding Configuration
-    embedding_provider: str = "openai" # [openai, huggingface, ollama]
-    embedding_model: str = "text-embedding-3-small" # e.g. "text-embedding-3-small", "text-embedding-3-large", "Qwen/Qwen3-Embedding-0.6B", "Qwen/Qwen3-Embedding-8B"
+    embedding_provider: str = "huggingface" # [openai, huggingface, ollama]
+    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B" # e.g. "text-embedding-3-small", "text-embedding-3-large", "Qwen/Qwen3-Embedding-0.6B", "Qwen/Qwen3-Embedding-8B"
 
     models: dict = field(default_factory=lambda: {
         "plan": {

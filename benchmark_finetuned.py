@@ -34,7 +34,7 @@ STRONG_MODEL_CFG = {
 
 def load_finetuned_config(path: str) -> dict:
     """Load per-substep fine-tuned model configs from a JSON file."""
-    with open(path) as f:
+    with open(path, encoding="utf-8-sig") as f:
         return json.load(f)
 
 
@@ -174,6 +174,7 @@ if __name__ == "__main__":
 # nohup python benchmark_finetuned.py > finetuned.log 2>&1 &
 # nohup python benchmark_finetuned.py --all_finetuned > finetuned_all.log 2>&1 &
 # python benchmark_finetuned.py --substep generate_file
+
 
 
 

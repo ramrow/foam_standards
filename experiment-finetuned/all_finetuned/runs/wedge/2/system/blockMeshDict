@@ -1,0 +1,97 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+vertices
+(
+    // Block 0 - x: -0.15242 to 0.3048, y: -0.005 to 0.1524, z: -0.005 to 0.005
+    (-0.15242 -0.005 -0.005)   // 0
+    (-0.15242  0.1524 -0.005)  // 1
+    (0  0.1524 -0.005)        // 2
+    (0 -0.005 -0.005)         // 3
+    (0.3048 -0.005 -0.005)    // 4
+    (0.3048  0.1524 -0.005)   // 5
+    (0.3048  0.1524  0.005)   // 6
+    (0.3048 -0.005  0.005)    // 7
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (10 10 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (4 7 6 5)
+        );
+    }
+    bottom
+    {
+        type symmetryPlane;
+        faces
+        (
+            (0 3 4 5)
+        );
+    }
+    top
+    {
+        type waveTransmissive;
+        field           U;
+        psi             thermo:psi;
+        gamma           1.4;
+        fieldInf        (10 0 0);
+        lInf            0.3048;
+        value           uniform (10 0 0);
+        faces
+        (
+            (1 2 6 7)
+        );
+    }
+    wedge
+    {
+        type wall;
+        faces
+        (
+            (0 3 4 5)
+        );
+    }
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 1 2 3)
+            (4 7 6 5)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //

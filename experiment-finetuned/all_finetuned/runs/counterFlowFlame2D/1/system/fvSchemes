@@ -1,0 +1,59 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss linear;
+    grad(U)         cellLimited Gauss linear 1;
+    grad(T)         cellLimited Gauss linear 1;
+    grad(Yi)        cellLimited Gauss linear 1;
+}
+
+divSchemes
+{
+    div(phi,U)      bounded Gauss linearUpwind grad(U);
+    div(phi,K)      bounded Gauss linear;
+    div(phi,h)      bounded Gauss linearUpwind default;
+    div(phi,k)      bounded Gauss linear;
+    div(phi,epsilon) bounded Gauss linear;
+    div(phi,R)      bounded Gauss linear;
+    div(R)          Gauss linear;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+    div(phi,Yi_h)   bounded Gauss linearUpwind default;
+    div(phid,p)     Gauss linear;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}
+
+wallDist
+{
+    method          meshWave;
+}
+
+// ************************************************************************* //

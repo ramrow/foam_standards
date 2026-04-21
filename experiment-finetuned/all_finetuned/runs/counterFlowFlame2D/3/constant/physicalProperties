@@ -1,0 +1,115 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+species
+(
+    CH4
+    O2
+    N2
+);
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+foamChemistryFile "<constant>/reactions";
+
+foamChemistryThermoFile "<constant>/thermo.compressibleGas";
+
+// Add individual species sub-dictionaries
+CH4
+{
+    specie          CH4;
+    thermo
+    {
+        Tlow        200;
+        Thigh       6000;
+        Tcommon     1000;
+        highCpCoeffs
+        (
+            5.195328e+00 -1.366391e-02 2.666670e-05 -1.966667e-08 4.666667e-12
+            -1.066667e+04 1.666667e+00
+        );
+        lowCpCoeffs
+        (
+            5.195328e+00 -1.366391e-02 2.666670e-05 -1.966667e-08 4.666667e-12
+            -1.066667e+04 1.666667e+00
+        );
+    }
+    transport
+    {
+        As          5.747e-07;
+        Ts          131.0;
+    }
+}
+
+O2
+{
+    specie          O2;
+    thermo
+    {
+        Tlow        200;
+        Thigh       6000;
+        Tcommon     1000;
+        highCpCoeffs
+        (
+            3.669888e+00 -6.953632e-04 1.066667e-06 -7.777778e-10 2.000000e-13
+            -1.066667e+04 3.669888e+00
+        );
+        lowCpCoeffs
+        (
+            3.669888e+00 -6.953632e-04 1.066667e-06 -7.777778e-10 2.000000e-13
+            -1.066667e+04 3.669888e+00
+        );
+    }
+    transport
+    {
+        As          2.655e-07;
+        Ts          107.4;
+    }
+}
+
+N2
+{
+    specie          N2;
+    thermo
+    {
+        Tlow        200;
+        Thigh       6000;
+        Tcommon     1000;
+        highCpCoeffs
+        (
+            2.926640e+00 1.151667e-03 -1.666667e-07 1.666667e-10 -6.666667e-14
+            -9.999999e+03 3.957333e+00
+        );
+        lowCpCoeffs
+        (
+            2.926640e+00 1.151667e-03 -1.666667e-07 1.666667e-10 -6.666667e-14
+            -9.999999e+03 3.957333e+00
+        );
+    }
+    transport
+    {
+        As          3.64e-07;
+        Ts          91.2;
+    }
+}
+
+// ************************************************************************* //

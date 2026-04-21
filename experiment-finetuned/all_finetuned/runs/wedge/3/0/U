@@ -1,0 +1,60 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (10 0 0);
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform (10 0 0);
+    }
+
+    outlet
+    {
+        type            waveTransmissive;
+        field           U;
+        psi             thermo:psi;
+        gamma           1.4;
+        fieldInf        (10 0 0);
+        lInf            0.3048;
+        value           uniform (10 0 0);
+    }
+
+    bottom
+    {
+        type            symmetryPlane;
+    }
+
+    top
+    {
+        type            waveTransmissive;
+        field           U;
+        psi             thermo:psi;
+        gamma           1.4;
+        fieldInf        (10 0 0);
+        lInf            0.3048;
+        value           uniform (10 0 0);
+    }
+
+    wedge
+    {
+        type            slip;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+// ************************************************************************* //

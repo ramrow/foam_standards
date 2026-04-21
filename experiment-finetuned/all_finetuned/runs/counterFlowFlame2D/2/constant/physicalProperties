@@ -1,0 +1,73 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+foamChemistryFile "<constant>/reactions";
+
+species
+(
+    CH4
+    O2
+    N2
+    H2O
+    CO2
+);
+
+// Individual species sub-dictionaries (required by multiComponentMixture)
+CH4
+{
+    Hf              -74873;
+    Cp              35.31;
+    Tref            298;
+    Hfref           -74873;
+}
+O2
+{
+    Hf              0;
+    Cp              29.37;
+    Tref            298;
+    Hfref           0;
+}
+N2
+{
+    Hf              0;
+    Cp              29.1;
+    Tref            298;
+    Hfref           0;
+}
+H2O
+{
+    Hf              -241826;
+    Cp              33.46;
+    Tref            298;
+    Hfref           -241826;
+}
+CO2
+{
+    Hf              -393522;
+    Cp              37.11;
+    Tref            298;
+    Hfref           -393522;
+}
+
+// ************************************************************************* //

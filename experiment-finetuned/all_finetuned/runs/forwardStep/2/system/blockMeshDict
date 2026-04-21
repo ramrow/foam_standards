@@ -1,0 +1,106 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+vertices
+(
+    // Block 0 - upstream region
+    (0    0    0)   // 0
+    (1    0    0)   // 1
+    (1    1    0)   // 2
+    (0    1    0)   // 3
+
+    // Block 1 - downstream region
+    (5    0    0)   // 4
+    (5    1    0)   // 5
+
+    // Block 2 - obstacle region
+    (0    2    0)   // 6
+    (1    2    0)   // 7
+
+    // Block 3 - downstream obstacle region
+    (5    2    0)   // 8
+);
+
+blocks
+(
+    hex (0 1 2 3 0 1 2 3) (20 20 1) simpleGrading (1 1 1)
+    hex (1 4 5 2 1 4 5 2) (80 20 1) simpleGrading (1 1 1)
+    hex (3 2 7 6 3 2 7 6) (20 20 1) simpleGrading (1 1 1)
+    hex (2 5 8 7 2 5 8 7) (80 20 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 3 2 1)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (4 5 2 1)
+            (5 8 7 2)
+        );
+    }
+    bottom
+    {
+        type symmetryPlane;
+        faces
+        (
+            (0 1 4 3)
+            (1 2 5 4)
+        );
+    }
+    top
+    {
+        type symmetryPlane;
+        faces
+        (
+            (3 6 7 2)
+            (2 7 8 5)
+        );
+    }
+    obstacle
+    {
+        type patch;
+        faces
+        (
+            (3 2 7 6)
+        );
+    }
+    defaultFaces
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+            (1 4 5 2)
+            (3 2 7 6)
+            (2 5 8 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //

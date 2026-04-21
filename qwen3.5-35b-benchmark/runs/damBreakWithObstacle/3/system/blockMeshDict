@@ -1,0 +1,96 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+// Vertices of the domain (0 to 1 in x, y, z)
+// Order: 0,1,2,3 (bottom), 4,5,6,7 (top)
+vertices
+(
+    (0 0 0)    // 0
+    (1 0 0)    // 1
+    (1 1 0)    // 2
+    (0 1 0)    // 3
+    (0 0 1)    // 4
+    (1 0 1)    // 5
+    (1 1 1)    // 6
+    (0 1 1)    // 7
+);
+
+// Blocks definition (single block for 1x1x1 domain)
+// 32 points in each direction
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (32 32 32) simpleGrading (1 1 1)
+);
+
+// Edges (none required for simple hex)
+edges
+(
+);
+
+// Boundary patches
+// Front, Back, Bottom, Top, Left, Right
+boundary
+(
+    front
+    {
+        type patch;
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+    back
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    bottom
+    {
+        type wall;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    top
+    {
+        type patch;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+    left
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    right
+    {
+        type wall;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+);
+
+// Mesh generation options
+mergeTolerance 1e-6;
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

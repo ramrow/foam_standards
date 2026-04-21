@@ -1,0 +1,63 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      nut;
+}
+
+// Turbulent (eddy) viscosity field for 3D Bernard Cell natural convection simulation
+// Solver: buoyantFoam
+// Domain: 9 m (x) x 1 m (y) x 2 m (z)
+// Hot wall at y=0: 301 K, Cold wall at y=1: 300 K
+// Turbulence model: k-epsilon (RAS)
+// nut = Cmu * k^2 / epsilon
+
+dimensions      [0 2 -1 0 0 0 0];
+
+internalField   uniform 9e-05;
+
+boundaryField
+{
+    // Hot wall at y=0
+    hotWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+
+    // Cold wall at y=1
+    coldWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+
+    // Bottom wall at z=0
+    bottomWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+
+    // Top wall at z=2
+    topWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+
+    // Left wall at x=0
+    leftWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+
+    // Right wall at x=9
+    rightWall
+    {
+        type            nutkWallFunction;
+        value           uniform 9e-05;
+    }
+}

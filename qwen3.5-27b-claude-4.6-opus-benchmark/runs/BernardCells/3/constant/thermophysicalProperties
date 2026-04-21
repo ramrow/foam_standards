@@ -1,0 +1,87 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+// Thermophysical properties for Bernard Cell natural convection simulation
+// Domain: 9m (x) x 1m (y) x 2m (z)
+// Hot wall at x=0 (310K), Cold wall at x=9 (300K)
+// Fluid: Air at atmospheric conditions
+//
+// Thermo model: heRhoThermo with pureMixture, hConst, perfectGas
+// Consistent with controlDict thermoType settings
+
+// Thermo type - MUST match controlDict exactly
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+
+// Mixture type - single species (pure air)
+mixture
+{
+    specie
+    {
+        // Molecular weight of air (g/mol)
+        // Consistent with transportProperties
+        molecularWeight 28.97;
+    }
+
+    // Thermo model - constant specific heat (enthalpy-based)
+    // Consistent with controlDict thermoType
+    thermo
+    {
+        // Specific heat at constant pressure (J/kg/K)
+        // Consistent with transportProperties
+        Cp              1005;
+        
+        // Reference enthalpy (J/kg)
+        // Set to 0 for sensible enthalpy reference at T=0
+        Hf              0;
+    }
+
+    // Equation of state - perfect gas
+    // Consistent with controlDict thermoType
+    equationOfState
+    {
+        // Reference pressure (Pa) - atmospheric
+        // Consistent with transportProperties
+        pRef            101325;
+        
+        // Reference temperature (K) - average of hot/cold walls
+        // Consistent with transportProperties
+        TRef            305;
+        
+        // Reference density (kg/m^3)
+        // rho_ref = p_ref * MW / (R * T_ref)
+        // rho_ref = 101325 * 28.97 / (8314.4621 * 305) = 1.176 kg/m^3
+        // Consistent with transportProperties
+        rhoRef          1.176;
+    }
+
+    // Transport model - constant properties
+    // Consistent with controlDict thermoType and transportProperties
+    transport
+    {
+        // Dynamic viscosity (kg/m/s)
+        // Consistent with transportProperties
+        mu              1.85e-05;
+        
+        // Thermal conductivity (W/m/K)
+        // Consistent with transportProperties
+        kappa           0.0265;
+    }
+}
+
+// Energy equation type - sensible enthalpy
+// Consistent with controlDict thermoType
+energy          sensibleEnthalpy;

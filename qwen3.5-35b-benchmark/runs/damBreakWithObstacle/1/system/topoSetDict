@@ -1,0 +1,74 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      topoSetDict;
+}
+
+actions
+(
+    {
+        name    obstacle;
+        type    boxToCell;
+        sourceInfo
+        {
+            box (0.4 0.4 0) (0.6 0.6 0.2);
+        }
+    }
+    {
+        name    waterInitial;
+        type    boxToCell;
+        sourceInfo
+        {
+            box (0 0 0) (1 0.5 1);
+        }
+    }
+    {
+        name    airInitial;
+        type    cellSet;
+        source    new;
+        sourceInfo
+        {
+            set noneToCell;
+        }
+    }
+    {
+        name    airInitial;
+        type    cellSet;
+        source    subsetToCell;
+        sourceInfo
+        {
+            set waterInitial;
+            action    invert;
+        }
+    }
+    {
+        name    waterPhase;
+        type    cellSet;
+        source    new;
+        sourceInfo
+        {
+            set waterInitial;
+        }
+    }
+    {
+        name    airPhase;
+        type    cellSet;
+        source    new;
+        sourceInfo
+        {
+            set airInitial;
+        }
+    }
+    {
+        name    obstacleCell;
+        type    cellSet;
+        source    new;
+        sourceInfo
+        {
+            set obstacle;
+        }
+    }
+);

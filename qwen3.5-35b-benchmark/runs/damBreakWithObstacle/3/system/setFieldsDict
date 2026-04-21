@@ -1,0 +1,42 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      setFieldsDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+defaultFieldValues
+(
+    volScalarFieldValue alpha.water 0
+    volVectorFieldValue U (0 0 0)
+);
+
+regions
+(
+    // Water region: Left half of the domain (x < 0.5)
+    // Assuming obstacle is at x=[0.4, 0.6], water should be to the left of the obstacle
+    // or the obstacle is submerged. For a standard dam break, water is usually on one side.
+    // Given the obstacle is at x=[0.4, 0.6], let's place water in x < 0.4 to avoid overlap
+    // or x < 0.5 if the obstacle is meant to be hit by the wave.
+    // Standard dam break: water on left, air on right.
+    // Let's define water in the box (0 0 0) (0.4 1 1) to leave the obstacle region (0.4-0.6) initially as air?
+    // Or if the obstacle is submerged, we set alpha=1 inside the box.
+    // To ensure the obstacle is "in" the water or the water hits it, let's assume the water fills x < 0.4 initially.
+    // If the user wants the obstacle to be inside the water initially, we would set alpha=1 in (0.4 0 0) (0.6 1 1).
+    // However, standard "dam break with obstacle" usually implies the wave hits the obstacle.
+    // Let's define the water domain as x < 0.4. The obstacle (0.4-0.6) will be air initially, then water hits it.
+    
+    boxToCell
+    {
+        box        (0 0 0) (0.4 1 1);
+        fieldValues
+        (
+            volScalarFieldValue alpha.water 1
+        );
+    }
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

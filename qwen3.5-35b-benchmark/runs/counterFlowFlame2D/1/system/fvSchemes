@@ -1,0 +1,63 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ddtSchemes
+{
+    default         Euler;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(U)         Gauss linear;
+    grad(T)         Gauss linear;
+    grad(Y)         Gauss linear;
+}
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    div(phi,Y)      Gauss linearUpwind grad(Y);
+    div(phi,k)      Gauss linearUpwind;
+    div(phi,omega)  Gauss linearUpwind;
+    div(phi,epsilon) Gauss linearUpwind;
+    div(phi,R)      Gauss linearUpwind;
+    div(phi,h)      Gauss linearUpwind;
+    div(phi,T)      Gauss linearUpwind;
+    div(phi,psi)    Gauss linearUpwind;
+    div(phi,nuTilda) Gauss linearUpwind;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+    laplacian(nuEff,U) Gauss linear corrected;
+    laplacian(DYeff,Y) Gauss linear corrected;
+    laplacian(DTeff,T) Gauss linear corrected;
+    laplacian(DTeff,h) Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}
+
+wallDist
+{
+    method          meshWave;
+}
+
+// ************************************************************************* //

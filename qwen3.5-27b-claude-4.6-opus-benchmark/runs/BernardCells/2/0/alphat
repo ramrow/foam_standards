@@ -1,0 +1,78 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alphat;
+}
+
+// Bernard Cell 3D Simulation - Turbulent Thermal Diffusivity
+// Solver: buoyantFoam
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+// Turbulence model: k-epsilon (natural convection)
+
+// ============================================================================
+// INITIAL CONDITION CALCULATION
+// ============================================================================
+// For k-epsilon model with natural convection:
+//
+// Given parameters:
+//   k       = 0.001 m²/s² (from k field)
+//   epsilon = 5.6e-5 m²/s³ (from epsilon field)
+//   Pr_t    = 0.85 (turbulent Prandtl number for air)
+//   C_mu    = 0.09 (standard k-epsilon constant)
+//
+// Calculation:
+//   Step 1: Calculate turbulent viscosity (nut)
+//   nut = C_mu * k² / epsilon
+//   nut = 0.09 * (0.001)² / 5.6e-5 = 1.6e-6 m²/s
+//
+//   Step 2: Calculate turbulent thermal diffusivity (alphat)
+//   alphat = nut / Pr_t
+//   alphat = 1.6e-6 / 0.85 = 1.88e-6 m²/s
+//
+// Verification:
+//   Molecular thermal diffusivity (alpha) = 2.2e-5 m²/s
+//   Total thermal diffusivity = alpha + alphat = 2.2e-5 + 1.88e-6 ≈ 2.39e-5 m²/s
+//   The turbulent contribution is about 8% of molecular diffusivity
+//   This is appropriate for transitional/turbulent natural convection
+//
+//   Turbulent Schmidt number: Sc_t = nut / alphat = Pr_t = 0.85 (consistent)
+
+dimensions      [0 2 -1 0 0 0 0];
+
+internalField   uniform 1.88e-06;
+
+boundaryField
+{
+    hotWall
+    {
+        type            zeroGradient;
+    }
+
+    coldWall
+    {
+        type            zeroGradient;
+    }
+
+    topWall
+    {
+        type            zeroGradient;
+    }
+
+    bottomWall
+    {
+        type            zeroGradient;
+    }
+
+    frontWall
+    {
+        type            zeroGradient;
+    }
+
+    backWall
+    {
+        type            zeroGradient;
+    }
+}

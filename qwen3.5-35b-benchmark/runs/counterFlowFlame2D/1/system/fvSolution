@@ -1,0 +1,79 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    p
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-07;
+        relTol          0.1;
+    }
+
+    pFinal
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-07;
+        relTol          0.1;
+    }
+
+    "(U|T|Y|psi|h|k|omega|epsilon|nuTilda|R)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+
+    "(U|T|Y|psi|h|k|omega|epsilon|nuTilda|R)Final"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-08;
+        relTol          0.1;
+    }
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+    consistent          yes;
+    residualControl
+    {
+        p               1e-4;
+        "(U|T|Y)"       1e-4;
+    }
+}
+
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell        0;
+    pRefValue       0;
+    consistent      yes;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        U               0.3;
+        T               0.3;
+        "(Y|psi|h)"     0.3;
+    }
+    fields
+    {
+        p               0.3;
+    }
+}
+
+// ************************************************************************* //

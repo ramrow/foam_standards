@@ -1,0 +1,453 @@
+<index>
+case name: obliqueShock
+case domain: compressible
+case category: None
+case solver: rhoCentralFoam
+</index>
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, U, T]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+Similar cases are ordered, with smaller numbers indicating greater similarity. For example, similar_case_1 is more similar than similar_case_2, and similar_case_2 is more similar than similar_case_3.
+<similar_case_1><index>
+case name: shockTube
+case domain: compressible
+case category: None
+case solver: rhoCentralFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [sample, fvSolution, controlDict, fvSchemes, blockMeshDict, setFieldsDict]</dir>
+<dir>directory name: 0. File names in this directory: [p.orig, U.orig, T.orig]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication setFields
+runApplication $(getApplication)
+runApplication -s sample  postProcess -func sample
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_1>
+
+
+<similar_case_2><index>
+case name: shockTube
+case domain: compressible
+case category: laminar
+case solver: rhoPimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [sample, fvSolution, controlDict, fvSchemes, blockMeshDict, setFieldsDict]</dir>
+<dir>directory name: 0. File names in this directory: [p.orig, U.orig, T.orig]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication setFields
+runApplication $application
+runApplication -s sample  postProcess -func sample
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_2>
+
+
+<similar_case_3><index>
+case name: boxTurb16
+case domain: DNS
+case category: None
+case solver: dnsFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, U.orig]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, boxTurbDict, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Get application name
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication boxTurb
+runApplication $application
+runApplication -s enstrophy  postProcess -func enstrophy
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_3>
+
+
+<similar_case_4><index>
+case name: hartmann
+case domain: electromagnetics
+case category: None
+case solver: mhdFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [sample, fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [Uz, Ux, p, U, B, pB, Uy]</dir>
+<dir>directory name: constant. File names in this directory: [physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication $application
+runApplication -s sample  postProcess -func sample
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_4>
+
+
+<similar_case_5><index>
+case name: T3A
+case domain: incompressible
+case category: None
+case solver: simpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [ReThetat, p, k, U, nut, omega, gammaInt]</dir>
+<dir>directory name: validation. File names in this directory: [createGraphs]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Set application name
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication $application
+
+( cd validation && ./createGraphs )
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_5>
+
+
+<similar_case_6><index>
+case name: impeller
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict, createNonConformalCouplesDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties, dynamicMeshDict]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+cd "${0%/*}" || exit 1
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+
+runApplication createNonConformalCouples -overwrite
+
+runApplication $(getApplication)
+
+</allrun_script></similar_case_6>
+
+
+<similar_case_7><index>
+case name: TJunctionFan
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, createBafflesDict, topoSetDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p.orig, U.orig, k.orig, nuTilda.orig, epsilon.orig, nut.orig]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Get application name
+application=$(getApplication)
+
+runApplication blockMesh
+
+# Create faceZones for baffles and fan
+runApplication topoSet
+
+# Create wall and cyclic baffles and the fields on them
+runApplication createBaffles -overwrite
+
+runApplication $application
+
+</allrun_script></similar_case_7>
+
+
+<similar_case_8><index>
+case name: oscillatingInlet
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, epsilon, k, U, nut, omega]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties, dynamicMeshDict]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+cd ${0%/*} || exit 1
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+
+runApplication createNonConformalCouples -overwrite nonCouple1 nonCouple2
+
+runApplication $(getApplication)
+
+</allrun_script></similar_case_8>
+
+
+<similar_case_9><index>
+case name: TJunction
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [nuTilda, p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [fvModels, cloudProperties, momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1 # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication $(getApplication)
+
+</allrun_script></similar_case_9>
+
+
+<similar_case_10><index>
+case name: drivaerFastback
+case domain: incompressible
+case category: None
+case solver: simpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, decomposeParDict.orig, meshQualityDict, fvSchemes, snappyHexMeshDict.orig, controlDict.orig, blockMeshDict, forceCoeffsIncompressible]</dir>
+<dir>directory name: 0. File names in this directory: [p, k, U, nut, omega]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+# Run from this directory
+cd "${0%/*}" || exit 1
+
+# Source tutorial run functions
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+usage () {
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat <<USAGE
+
+Usage: ${0##*/} [OPTIONS]
+options:
+  -c | -cores <nCores>   number of cores in parallel run
+  -h | -help             help
+  -m | -mesh <S|M|L|XL>  mesh size
+                         - S: small, 440k cells
+                         - M: medium, 3M cells (default)
+                         - L: large, 22.5M cells
+                         - XL: extra large, ~200M cells
+
+Runs the ${PWD##*/} simulation
+
+USAGE
+    exit 1
+}
+
+checkCores () {
+    _cores="$1"
+
+    ! [ "$_cores" -eq "$_cores" ] 2> /dev/null && \
+        echo "Number of cores '$_cores' must be an integer" && \
+        return 1
+
+    [ "$_cores" -lt 2 ] && \
+        echo "Number of cores '$_cores' must be >= 2" && \
+        return 1
+
+    return 0
+}
+
+refineBackgroundMesh () {
+    _nRefine="$1"
+    _r=0
+    while [ $_r -lt "$_nRefine" ]
+    do
+        echo "Refining the background mesh"
+        runParallel -a refineMesh -overwrite
+        _r=$(( _r + 1 ))
+    done
+}
+
+setKeyword () {
+    _entry="$1"
+    _value="$2"
+    _file="$3"
+
+    foamDictionary -entry "$_entry" -set "$_value" "$_file" > /dev/null
+}
+
+nRefine=1
+nCores=8
+
+while [ "$#" -gt 0 ]
+do
+   case "$1" in
+   -c | -cores)
+      [ "$#" -ge 2 ] || usage "'$1' option requires an argument"
+      nCores=$2
+      shift 2
+      checkCores "$nCores" || usage
+      setKeyword numberOfSubdomains "$nCores" system/decomposeParDict
+      ;;
+   -h | -help)
+      usage
+      ;;
+   -m | -mesh)
+      [ "$#" -ge 2 ] || usage "'$1' option requires an argument"
+      mesh=$2
+      shift 2
+      case "$mesh" in
+          S)  ;;
+          M)  nRefine=1 ;;
+          L)  nRefine=2 ; setKeyword endTime 2000 system/controlDict ;;
+          XL) nRefine=3 ; setKeyword endTime 2000 system/controlDict ;;
+          *)  usage "Invalid argument '$mesh' to -m|-mesh <S|M|L|XL>." ;;
+      esac
+      ;;
+   -test)
+      shift
+      ;;
+   -*)
+      usage "Invalid option '$1'"
+      ;;
+   *)
+      break
+      ;;
+    esac
+done
+
+# START OF MAIN SCRIPT
+
+runApplication blockMesh
+
+runApplication decomposePar -copyZero
+
+refineBackgroundMesh $nRefine
+
+runParallel snappyHexMesh -overwrite
+
+runParallel checkMesh
+
+runParallel "$(getApplication)"
+
+# runApplication reconstructParMesh -constant
+# runApplication reconstructPar -latestTime
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_10>
+
+

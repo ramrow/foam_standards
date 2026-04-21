@@ -1,0 +1,57 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+
+// Transport properties for Bernard Cell natural convection simulation
+// Domain: 9m (x) x 1m (y) x 2m (z)
+// Hot wall at x=0 (310K), Cold wall at x=9 (300K)
+// Fluid: Air at atmospheric conditions
+
+// Transport model - constant properties (consistent with controlDict thermoType)
+transport   const;
+
+// Viscosity (dynamic viscosity of air at ~305K)
+// mu = 1.85e-5 kg/(m*s) - typical value for air at reference temperature
+mu          1.85e-05;
+
+// Thermal conductivity of air at ~305K
+// k = 0.0265 W/(m*K) - typical value for air at reference temperature
+k           0.0265;
+
+// Specific heat at constant pressure for air
+// Cp = 1005 J/(kg*K) - typical value for air
+Cp          1005;
+
+// Molecular weight of air
+// MW = 28.97 g/mol
+molecularWeight 28.97;
+
+// Reference conditions for perfect gas equation of state
+// These are used to calculate reference density: rho_ref = p_ref*MW/(R*T_ref)
+// where R = 8314.4621 J/(kmol*K)
+
+// Reference pressure (atmospheric)
+pRef        101325;
+
+// Reference temperature (average of hot and cold walls)
+TRef        305;
+
+// Reference density (calculated from perfect gas law)
+// rho_ref = p_ref * MW / (R * T_ref)
+// rho_ref = 101325 * 28.97 / (8314.4621 * 305) = 1.176 kg/m^3
+rhoRef      1.176;
+
+// Prandtl number verification:
+// Pr = mu * Cp / k = 1.85e-5 * 1005 / 0.0265 = 0.703 (typical for air)
+
+// Rayleigh number verification (for L = 1m, characteristic height):
+// Ra = g * beta * deltaT * L^3 / (nu * alpha)
+// beta = 1/T_ref = 1/305 K^-1
+// nu = mu/rho_ref = 1.85e-5/1.176 = 1.57e-5 m^2/s
+// alpha = k/(rho_ref*Cp) = 0.0265/(1.176*1005) = 2.24e-5 m^2/s
+// Ra = 9.81 * (1/305) * 10 * 1^3 / (1.57e-5 * 2.24e-5) = 8.9e8
+// Ra >> 1708 (critical value), so strong natural convection expected

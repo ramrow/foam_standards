@@ -1,0 +1,74 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Density of phases (kg/m^3)
+rho1        1;
+rho2        1000;
+
+// Kinematic viscosity of phases (m^2/s)
+// nu1 corresponds to phase1 (water), nu2 corresponds to phase2 (air)
+// Note: User specified water viscosity 1e-6 and air viscosity 1.48e-5
+// In interFoam, transportProperties defines nu as a vector (nu1, nu2)
+// However, physicalProperties is often used for additional phase-specific data or legacy compatibility.
+// Given the existing transportProperties file in constant folder defines nu and rho as vectors:
+// nu (1.48e-05 1e-06) -> nu1=1.48e-05 (air), nu2=1e-06 (water)
+// rho (1 1000) -> rho1=1 (air), rho2=1000 (water)
+// But the user requirement says: "density of air to be 1... density of water to be 1000"
+// and "viscosity of air to be 1.48e-5 and viscosity of water to be 1e-6".
+// The existing transportProperties file has: nu (1.48e-05 1e-06) and rho (1 1000).
+// This implies the order in the vector is (air, water) based on the values provided in the prompt's existing files.
+// However, standard interFoam convention usually orders phases as (phase1, phase2).
+// In phaseProperties: phase1=water, phase2=air.
+// If phase1=water, then nu1 should be water viscosity (1e-6) and nu2 should be air viscosity (1.48e-5).
+// The existing transportProperties file has nu (1.48e-05 1e-06). This is a mismatch with the phase order (water, air) if interpreted as (nu1, nu2).
+// To ensure consistency with the user's explicit request and the phaseProperties definition (phase1=water),
+// the physicalProperties file should explicitly define the properties to avoid ambiguity, or we must assume the user's existing transportProperties file is the source of truth for the solver.
+// The user prompt says: "Ensure all required values are present and match with the files content already generated."
+// The existing transportProperties has nu (1.48e-05 1e-06).
+// If phase1 is water, and nu vector is (nu1, nu2), then nu1=1.48e-05 (air viscosity) and nu2=1e-06 (water viscosity).
+// This would mean the vector order is (air, water), contradicting the phaseProperties order (water, air).
+// However, interFoam reads nu from transportProperties. The physicalProperties file is often not read by standard interFoam unless specific models are used.
+// But the user asks for a file named "physicalProperties.water". This is non-standard for interFoam (usually it's transportProperties).
+// Wait, the user asks for "physicalProperties.water". This might be a specific requirement for a custom setup or a misunderstanding of standard naming.
+// However, looking at the existing files, there is NO "physicalProperties" file. There is "transportProperties" and "phaseProperties".
+// The user instruction says: "generate a complete and functional file named: physicalProperties.water".
+// This filename is unusual. Standard OpenFOAM uses "transportProperties".
+// Perhaps the user wants a file that defines the water properties specifically, or maybe they meant "transportProperties" but named it "physicalProperties.water"?
+// Or maybe they want a file to be used by a specific solver or custom code?
+// Given the constraint "match with the files content already generated", and the existing "transportProperties" already has the values.
+// If I create "physicalProperties.water", it might be ignored by the solver unless it's a specific custom setup.
+// However, the prompt explicitly asks for this filename. I will generate it with the water properties as requested, ensuring consistency with the values in transportProperties and phaseProperties.
+// The values in transportProperties are: nu (1.48e-05 1e-06) and rho (1 1000).
+// If the order is (air, water), then water nu = 1e-06, water rho = 1000.
+// If the order is (water, air), then water nu = 1.48e-05 (incorrect per user request), water rho = 1.
+// The user request says: "viscosity of water to be 1e-6".
+// The existing transportProperties has 1e-06 as the second element.
+// If phaseProperties says phase1=water, phase2=air.
+// Standard interFoam assumes the vector order matches the phase order (phase1, phase2).
+// So nu1 (water) should be 1e-06. nu2 (air) should be 1.48e-05.
+// The existing transportProperties file has nu (1.48e-05 1e-06). This is (air, water) order.
+// This is a conflict. The user's existing file has the values swapped relative to the phase order if standard conventions are followed.
+// However, I must "match with the files content already generated".
+// The existing transportProperties has nu (1.48e-05 1e-06).
+// I will assume the user's existing transportProperties is the "truth" for the simulation, even if the order seems swapped relative to the phaseProperties definition.
+// But wait, if I create "physicalProperties.water", I should define the water properties clearly.
+// Water density: 1000 kg/m^3.
+// Water viscosity: 1e-6 m^2/s.
+// I will create the file with these values.
+
+// Water properties
+rho_water   1000;
+nu_water    1e-06;
+
+// Surface tension coefficient (sigma) - consistent with transportProperties
+sigma       0.072;
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

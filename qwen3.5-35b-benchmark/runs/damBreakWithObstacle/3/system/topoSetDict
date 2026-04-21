@@ -1,0 +1,44 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+actions
+(
+    // Create a set named 'obstacle' to define the region for the obstacle
+    // Assuming a simple cube obstacle centered in the domain with size 0.2
+    // Coordinates: x=[0.4, 0.6], y=[0.4, 0.6], z=[0.4, 0.6]
+    {
+        name            obstacle;
+        type            cellSet;
+        action          new;
+        source          boxToCell;
+        sourceInfo
+        {
+            box           (0.4 0.4 0.4) (0.6 0.6 0.6);
+        }
+    }
+
+    // Create a set named 'obstacleWall' to assign boundary conditions to the obstacle cells
+    // This converts the cell set to a patch for use in boundary conditions if needed,
+    // or simply to identify the region for mesh modification (e.g., snappyHexMesh refinement)
+    // For topoSetDict, we often just create the cellSet. 
+    // If the user intends to use this for a fixed obstacle in interFoam, 
+    // the 'obstacle' cellSet is typically used by a utility like 'setFields' or 
+    // to define a region for 'topoSet' based refinement.
+    // However, to make it a valid 'patch' for boundary conditions in a static mesh context,
+    // we usually rely on the mesh generation (blockMesh) or a subsequent snappyHexMesh step.
+    // Since the user asked for 'topoSetDict' specifically, we will generate the cellSet 
+    // which is the primary function of this file.
+    
+    // Optional: Create a patch from the cellSet if needed for specific solvers,
+    // but standard interFoam obstacle handling often uses 'setFields' with this set.
+    // We will stick to creating the cellSet as it is the most robust definition.
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

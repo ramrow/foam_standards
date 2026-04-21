@@ -1,0 +1,70 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// Time derivative schemes
+ddtSchemes
+{
+    default         Euler;
+}
+
+// Gradient schemes
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss linear;
+    grad(U)         Gauss linear;
+}
+
+// Divergence schemes
+divSchemes
+{
+    default         none;
+    
+    // Momentum equation - bounded scheme for stability
+    div(phi,U)      bounded Gauss linearUpwind grad(U);
+    
+    // Energy equation - bounded upwind for stability with large time step
+    div(phi,h)      bounded Gauss upwind;
+    
+    // Turbulence equations
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,epsilon) bounded Gauss upwind;
+    div(phi,omega)  bounded Gauss upwind;
+    
+    // Compressible terms
+    div(rho*phi,U)  bounded Gauss linearUpwind grad(U);
+    div(phi)        Gauss linear;
+}
+
+// Laplacian schemes
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+    laplacian(p)    Gauss linear corrected;
+    laplacian(U)    Gauss linear corrected;
+    laplacian(h)    Gauss linear corrected;
+}
+
+// Interpolation schemes
+interpolationSchemes
+{
+    default         linear;
+}
+
+// Surface normal gradient schemes
+snGradSchemes
+{
+    default         corrected;
+}
+
+// Flux reconstruction schemes
+fluxRequired
+{
+    default         no;
+    p               yes;
+}

@@ -1,0 +1,64 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      alphat;
+}
+
+// Turbulent thermal diffusivity field for 3D Bernard Cell natural convection simulation
+// Solver: buoyantFoam
+// Domain: 9 m (x) x 1 m (y) x 2 m (z)
+// Hot wall at y=0: 301 K, Cold wall at y=1: 300 K
+// Turbulence model: k-epsilon (RAS)
+// alphat = nut / Pr_t, where Pr_t (turbulent Prandtl number) ≈ 0.85 for air
+// With nut = 9e-05 m²/s, alphat ≈ 1e-04 m²/s
+
+dimensions      [0 2 -1 0 0 0 0];
+
+internalField   uniform 1e-04;
+
+boundaryField
+{
+    // Hot wall at y=0
+    hotWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+
+    // Cold wall at y=1
+    coldWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+
+    // Bottom wall at z=0
+    bottomWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+
+    // Top wall at z=2
+    topWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+
+    // Left wall at x=0
+    leftWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+
+    // Right wall at x=9
+    rightWall
+    {
+        type            alphaWallFunction;
+        value           uniform 1e-04;
+    }
+}

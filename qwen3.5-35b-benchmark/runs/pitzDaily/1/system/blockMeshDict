@@ -1,0 +1,131 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+convertToMeters 0.001;
+
+vertices
+(
+    // Layer 0 (z=0)
+    (0 0 0)           // 0: Inlet Bottom Left
+    (100 0 0)         // 1: Outlet Bottom Right
+    (100 10 0)        // 2: Outlet Top Right
+    (0 10 0)          // 3: Inlet Top Left
+    (20 0 0)          // 4: Step Bottom Left (Wall corner)
+    (20 5 0)          // 5: Step Top Left (Wall corner)
+    (30 5 0)          // 6: Step Top Right (Wall corner)
+    (30 0 0)          // 7: Step Bottom Right (Wall corner)
+    (20 10 0)         // 8: Top of Step Left (Inlet/Step Upper interface)
+    (30 10 0)         // 9: Top of Step Right (Step Upper/Downstream interface)
+    (0 5 0)           // 10: New Vertex (Inlet split point)
+
+    // Layer 1 (z=1)
+    (0 0 1)           // 11
+    (100 0 1)         // 12
+    (100 10 1)        // 13
+    (0 10 1)          // 14
+    (20 0 1)          // 15
+    (20 5 1)          // 16
+    (30 5 1)          // 17
+    (30 0 1)          // 18
+    (20 10 1)         // 19
+    (30 10 1)         // 20
+    (0 5 1)           // 21: New Vertex (Inlet split point)
+);
+
+blocks
+(
+    // Block 1a: Inlet Lower (0-20, 0-5)
+    hex (0 4 5 10 11 15 16 21) (20 5 1) simpleGrading (1 1 1)
+
+    // Block 1b: Inlet Upper (0-20, 5-10)
+    hex (10 5 8 3 21 16 19 14) (20 5 1) simpleGrading (1 1 1)
+
+    // Block 2: Step Upper (20-30, 5-10)
+    hex (5 6 9 8 16 17 20 19) (10 5 1) simpleGrading (1 1 1)
+
+    // Block 3: Downstream (30-100, 0-10)
+    hex (7 1 2 9 18 12 13 20) (70 10 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 10 21 11)
+            (10 3 14 21)
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 13 12)
+        );
+    }
+
+    walls
+    {
+        type wall;
+        faces
+        (
+            // Bottom Wall (Inlet Lower + Downstream)
+            (0 4 15 11)
+            (7 1 12 18)
+
+            // Top Wall (Inlet Upper + Step Upper + Downstream)
+            (3 8 19 14)
+            (8 9 20 19)
+            (9 2 13 20)
+
+            // Step Vertical (at x=20, y=0 to 5)
+            (4 5 16 15)
+            
+            // Step Top (at y=5, x=20 to 30)
+            (5 6 17 16)
+        );
+    }
+
+    emptyFront
+    {
+        type empty;
+        faces
+        (
+            // Front faces (z=0) for all blocks
+            (0 4 5 10)      // Block 1a front
+            (10 5 8 3)      // Block 1b front
+            (5 6 9 8)       // Block 2 front
+            (7 1 2 9)       // Block 3 front
+        );
+    }
+
+    emptyBack
+    {
+        type empty;
+        faces
+        (
+            // Back faces (z=1) for all blocks
+            (11 15 16 21)   // Block 1a back
+            (21 16 19 14)   // Block 1b back
+            (16 17 20 19)   // Block 2 back
+            (18 12 13 20)   // Block 3 back
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

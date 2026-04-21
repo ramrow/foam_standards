@@ -1,0 +1,114 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+// Solvers for buoyantFoam - Bernard Cell natural convection simulation
+// Domain: 9m x 1m x 2m, Hot wall: 310K, Cold wall: 300K
+
+solvers
+{
+    // Pressure solver - GAMG for compressible flow
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.1;
+        smoother        GaussSeidel;
+        nPreSweeps      0;
+        nPostSweeps     2;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        mergeLevels     1;
+        maxIter         100;
+    }
+
+    // Velocity solver
+    U
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+
+    // Enthalpy solver (thermo model: heRhoThermo with sensibleEnthalpy)
+    h
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+
+    // Temperature (derived from enthalpy)
+    T
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+
+    // Turbulence kinetic energy (k-epsilon model)
+    k
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+
+    // Turbulence dissipation rate
+    epsilon
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+
+    // Turbulence specific dissipation rate (if using k-omega)
+    omega
+    {
+        solver          smoothSolver;
+        smoother        GaussSeidel;
+        tolerance       1e-5;
+        relTol          0.1;
+    }
+}
+
+// PISO algorithm settings for transient compressible flow
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    consistent      yes;
+}
+
+// SIMPLE algorithm settings (backup/steady option)
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+}
+
+// Relaxation factors - consistent with controlDict
+relaxationFactors
+{
+    fields
+    {
+        p           0.3;
+    }
+    equations
+    {
+        U           1;
+        h           1;
+        T           1;
+        k           1;
+        epsilon     1;
+        omega       1;
+    }
+}

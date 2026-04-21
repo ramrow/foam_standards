@@ -1,0 +1,168 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+// Solver selection for reactingFoam (compressible reacting flow)
+solvers
+{
+    // Pressure equation - GAMG is efficient for pressure
+    p
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.1;
+        smoother        GaussSeidel;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 10;
+        mergeLevels     1;
+    }
+
+    // Momentum equation - PBiCG with DILU preconditioner
+    U
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Enthalpy equation - GAMG for efficiency
+    h
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.1;
+        smoother        GaussSeidel;
+    }
+
+    // Density equation
+    rho
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Species equations (CH4, O2, N2, and products)
+    "Yi"
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Turbulence kinetic energy
+    k
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Turbulence specific dissipation rate
+    omega
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Temperature equation (if used)
+    T
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Internal energy equation (if used)
+    e
+    {
+        solver          PBiCG;
+        preconditioner  DILU;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+}
+
+// PISO algorithm for pressure-velocity coupling in transient simulation
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    consistent      yes;
+    
+    // Momentum predictor
+    momentumPredictor yes;
+    
+    // Transonic correction for compressible flow
+    transonic       yes;
+    
+    // Initial and final relaxation factors
+    initialRelaxationFactors
+    {
+        fields
+        {
+            p           0.3;
+            rho         0.3;
+        }
+        equations
+        {
+            U           0.3;
+            h           0.3;
+            "Yi"        0.3;
+        }
+    }
+}
+
+// SIMPLE algorithm settings (used as fallback or for steady portions)
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+    
+    // Under-relaxation factors for stability
+    relaxationFactors
+    {
+        fields
+        {
+            p           0.3;
+            rho         0.3;
+        }
+        equations
+        {
+            U           0.5;
+            h           0.5;
+            "Yi"        0.5;
+            k           0.7;
+            omega       0.7;
+        }
+    }
+}
+
+// Residual control for convergence monitoring
+residualControl
+{
+    p           1e-4;
+    U           1e-4;
+    h           1e-4;
+    rho         1e-4;
+    "Yi"        1e-4;
+    k           1e-4;
+    omega       1e-4;
+}
+
+// Turbulence model settings
+turbulence
+{
+    on;
+}

@@ -1,0 +1,99 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+vertices
+(
+    // Inlet face (x = -50)
+    (-50  25  25)   // 0: Top Left
+    (-50  25 -25)   // 1: Top Right
+    (-50 -25  25)   // 2: Bottom Left
+    (-50 -25 -25)   // 3: Bottom Right
+    // Bend face (x = 25)
+    ( 25  25  25)   // 4: Top Left
+    ( 25  25 -25)   // 5: Top Right
+    ( 25 -25  25)   // 6: Bottom Left
+    ( 25 -25 -25)   // 7: Bottom Right
+    // Outlet face (y = -75)
+    (-500 -75  25)  // 8: Top Left
+    (-500 -75 -25)  // 9: Top Right
+    (-500 -75  25)  // 10: Bottom Left (Duplicate for valid topology)
+    (-500 -75 -25)  // 11: Bottom Right (Duplicate for valid topology)
+    // Extended inlet/outlet sections to match user coords
+    (-500  25  25)  // 12: Inlet End Top Left
+    (-500  25 -25)  // 13: Inlet End Top Right
+    (-500 -25  25)  // 14: Inlet End Bottom Left
+    (-500 -25 -25)  // 15: Inlet End Bottom Right
+    (-500  0  25)   // 16: Bend End Top Left
+    (-500  0 -25)   // 17: Bend End Top Right
+    (-500  0  25)   // 18: Bend End Bottom Left
+    (-500  0 -25)   // 19: Bend End Bottom Right
+);
+
+blocks
+(
+    // Block 1: Inlet to Bend
+    hex (0 1 4 5 12 13 16 17) (20 20 10) simpleGrading (1 1 1)
+    // Block 2: Bend to Outlet
+    hex (4 5 6 7 16 17 18 19) (20 20 10) simpleGrading (1 1 1)
+    // Block 3: Outlet section
+    hex (6 7 2 3 18 19 8 9) (20 20 10) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 1 4 5)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (6 7 2 3)
+        );
+    }
+    walls
+    {
+        type wall;
+        faces
+        (
+            (0 12 13 1)
+            (4 16 17 5)
+            (6 18 19 7)
+            (2 8 9 3)
+            (12 13 17 16)
+            (13 1 5 17)
+            (16 17 19 18)
+            (17 5 7 19)
+            (18 19 9 8)
+            (19 7 3 9)
+            (0 4 5 1)
+            (2 6 7 3)
+            (8 9 3 2)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

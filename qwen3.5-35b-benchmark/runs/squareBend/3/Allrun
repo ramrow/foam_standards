@@ -1,0 +1,34 @@
+bash
+#!/bin/sh
+cd ${0%/*} || exit 1    # run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Generate mesh
+runApplication blockMesh
+
+# Run the solver
+# rhoSimpleFoam is a steady-state compressible solver
+# Since decomposeParDict exists, we check if running in parallel is intended or default to serial
+# Based on the presence of decomposeParDict, a parallel run is often expected, but without explicit instruction
+# to decompose, we run serially first. If the user intended parallel, they would typically run decomposePar first.
+# However, looking at similar cases (e.g., similar_case_1, similar_case_2), they run the solver directly.
+# If decomposeParDict is present, it implies the case *can* be run in parallel.
+# To be safe and standard for a generic 'Allrun' without specific parallel arguments provided:
+# We will run serially. If the user wants parallel, they would modify the script or run decomposePar manually.
+# However, checking similar_case_8, it explicitly runs decomposePar.
+# Given the directory structure includes 'decomposeParDict', it is highly likely intended for parallel execution.
+# But without explicit user instruction to "run in parallel", the safest generic script runs serially.
+# Let's stick to the standard pattern: blockMesh -> solver.
+# If the user needs parallel, they usually add `runParallel` or `decomposePar` steps.
+# Since the prompt asks to generate based on the details, and the details don't specify parallel execution,
+# we will run the solver directly. If the solver detects parallel environment, it will handle it, 
+# but typically `rhoSimpleFoam` needs `-parallel` flag if run in parallel.
+# Let's assume a standard serial run unless specified otherwise, but given the `decomposeParDict` presence,
+# a robust script might check for it. However, to avoid over-complicating without explicit request:
+# We will run the application.
+
+runApplication $(getApplication)
+
+#------------------------------------------------------------------------------

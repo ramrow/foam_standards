@@ -1,0 +1,165 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+// Bernard Cell 3D Simulation - fvSolution
+// Solver: buoyantFoam
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+
+// ============================================================================
+// SOLVER SETTINGS
+// ============================================================================
+
+solvers
+{
+    // Momentum equation - velocity field
+    U
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Modified pressure (p - rho*g*h)
+    p_rgh
+    {
+        solver          GAMG;
+        tolerance       1e-6;
+        relTol          0.01;
+        smoother        GaussSeidel;
+        cacheAgglomeration on;
+        agglomerator    faceAreaPair;
+        nCellsInCoarsestLevel 10;
+        mergeLevels     1;
+    }
+
+    // Temperature field
+    T
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    // Turbulence equations (if activated)
+    k
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    epsilon
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+
+    omega
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          0.1;
+    }
+}
+
+// ============================================================================
+// RESIDUAL CONTROL
+// ============================================================================
+
+SIMPLE
+{
+    residualControl
+    {
+        U               1e-5;
+        p_rgh           1e-5;
+        T               1e-5;
+        "(k|epsilon|omega)" 1e-5;
+    }
+}
+
+// ============================================================================
+// RELAXATION FACTORS
+// ============================================================================
+
+relaxationFactors
+{
+    // Equations relaxation
+    equations
+    {
+        U               1.0;
+        p_rgh           1.0;
+        T               1.0;
+        "(k|epsilon|omega)" 1.0;
+    }
+}
+
+// ============================================================================
+// PIMPLE ALGORITHM SETTINGS
+// buoyantFoam uses PIMPLE for transient buoyancy-driven simulations
+// ============================================================================
+
+PIMPLE
+{
+    nOuterCorrectors      2;
+    nCorrectors           2;
+    nNonOrthogonalCorrectors 0;
+    consistent            yes;
+    pRefCell              0;
+    pRefValue             0;
+    momentumPredictor     yes;
+    residualControl
+    {
+        U               1e-5;
+        p_rgh           1e-5;
+        T               1e-5;
+        "(k|epsilon|omega)" 1e-5;
+    }
+}
+
+// ============================================================================
+// PISO ALGORITHM SETTINGS
+// buoyantFoam uses PISO for transient simulations
+// ============================================================================
+
+PISO
+{
+    nCorrectors         2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell            0;
+    pRefValue           0;
+    consistent          yes;
+}
+
+// ============================================================================
+// BUOYANT PISO SETTINGS
+// Specific settings for buoyantFoam solver
+// ============================================================================
+
+buoyantPISO
+{
+    momentumPredictor   yes;
+    nCorrectors         2;
+    nNonOrthogonalCorrectors 0;
+    consistent          yes;
+    pRefCell            0;
+    pRefValue           0;
+    residualControl
+    {
+        U               1e-5;
+        p_rgh           1e-5;
+        T               1e-5;
+        "(k|epsilon|omega)" 1e-5;
+    }
+}

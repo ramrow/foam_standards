@@ -1,0 +1,26 @@
+sh
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Get application name
+application=$(getApplication)
+
+# Mesh generation
+runApplication blockMesh
+
+# Run the solver (rhoSimpleFoam)
+# Since it is a compressible steady-state solver, it runs directly after meshing
+# No parallel execution is assumed unless decomposeParDict is explicitly used for parallel runs,
+# but standard practice for a basic script is to run sequentially unless specified otherwise.
+# However, given decomposeParDict exists, a parallel run is often expected. 
+# We will stick to a standard sequential run as per the simplest interpretation of "Allrun" 
+# unless the user specifies parallel. If parallel is needed, decomposePar would be called first.
+# Given the presence of decomposeParDict and fvConstraints, this looks like a standard case.
+# We will run sequentially to be safe and generic, as is common in basic Allrun scripts.
+
+runApplication $application
+
+#------------------------------------------------------------------------------

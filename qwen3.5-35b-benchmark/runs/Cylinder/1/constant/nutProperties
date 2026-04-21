@@ -1,0 +1,68 @@
+FoamFile
+    {
+        version     2.0;
+        format      ascii;
+        class       dictionary;
+        object      nut;
+    }
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+    // Since the simulation uses a constant viscosity model (Newtonian)
+    // as defined in transportProperties, nut (turbulent viscosity) is zero
+    // everywhere. This file is required for solvers that expect a nut field
+    // even in laminar mode or when using models that might reference it,
+    // but here it is set to zero to satisfy the laminar requirement.
+
+    // Note: The user requested a "generalized Newtonian model and Cross-Power-Law",
+    // but also specified "constant viscosity model with nu value of 0.01".
+    // In OpenFOAM, if transportModel is Newtonian in transportProperties,
+    // the effective viscosity is constant. If a Cross model were used,
+    // transportModel would be 'Cross' and nutProperties would not be the
+    // primary definition of viscosity (mu would be in transportProperties).
+    // Given the explicit instruction to use constant nu=0.01 and the existing
+    // transportProperties file, we define nut as zero (laminar flow).
+
+    // If the user intended to use the Cross model parameters (nuInf=10, m=0.4, n=3)
+    // instead of the constant nu, the transportProperties file would need to be
+    // changed to 'transportModel Cross;'. However, the prompt explicitly states
+    // "use constant viscosity model with nu value of 0.01".
+    // Therefore, nut is set to 0.
+
+    internalField uniform 0;
+
+    boundaryField
+    {
+        inlet
+        {
+            type            calculated;
+            value           uniform 0;
+        }
+        outlet
+        {
+            type            calculated;
+            value           uniform 0;
+        }
+        topWall
+        {
+            type            nutUSpaldingWallFunction;
+            value           uniform 0;
+        }
+        bottomWall
+        {
+            type            nutUSpaldingWallFunction;
+            value           uniform 0;
+        }
+        cylinder
+        {
+            type            nutUSpaldingWallFunction;
+            value           uniform 0;
+        }
+        frontAndBack
+        {
+            type            empty;
+        }
+    }
+
+    // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+}

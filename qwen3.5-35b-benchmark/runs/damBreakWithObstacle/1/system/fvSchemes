@@ -1,0 +1,67 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+
+default         none;
+
+ddtSchemes
+{
+    default         Euler;
+}
+
+gSchemes
+{
+    default         Gauss linear;
+    grad(U)         Gauss linear;
+    grad(p_rgh)     Gauss linear;
+    grad(alpha1)    Gauss linear;
+}
+
+gradSchemes
+{
+    default         Gauss linear;
+    grad(U)         Gauss linear;
+    grad(p_rgh)     Gauss linear;
+    grad(alpha1)    Gauss linear;
+}
+
+ggradSchemes
+{
+    default         Gauss linear;
+}
+
+divSchemes
+{
+    default         none;
+    div(phi,U)      bounded Gauss linearUpwind grad(U);
+    div(phi,alpha1) bounded Gauss interfaceCompression;
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,epsilon) bounded Gauss upwind;
+    div(phi,R)      bounded Gauss upwind;
+    div(phi,nuTilda) bounded Gauss upwind;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+}
+
+laplacianSchemes
+{
+    default         none;
+    laplacian(nuEff,U) Gauss linear corrected;
+    laplacian(Dalpha1,alpha1) Gauss linear corrected;
+    laplacian(Dp,rho) Gauss linear corrected;
+    laplacian(Dp,alpha1) Gauss linear corrected;
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}

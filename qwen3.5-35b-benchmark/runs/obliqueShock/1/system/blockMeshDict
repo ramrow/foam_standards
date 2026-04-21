@@ -1,0 +1,85 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Convert to meters
+scale   1;
+
+// Geometry: 4.1m (x) x 1.0m (y) x 0.1m (z)
+// Inlet (x=0), Outlet (x=4.1), Bottom (y=0), Top (y=1.0)
+// Front (z=0), Back (z=0.1)
+// We use a simple rectangular mesh for the 2D simulation (extruded in z)
+
+vertices
+(
+    (0 0 0)          // 0: Inlet Bottom
+    (4.1 0 0)        // 1: Outlet Bottom
+    (4.1 1 0)        // 2: Outlet Top
+    (0 1 0)          // 3: Inlet Top
+    (0 0 0.1)        // 4: Inlet Bottom (Back)
+    (4.1 0 0.1)      // 5: Outlet Bottom (Back)
+    (4.1 1 0.1)      // 6: Outlet Top (Back)
+    (0 1 0.1)        // 7: Inlet Top (Back)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (100 10 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    top
+    {
+        type patch;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+    bottom
+    {
+        type patch;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 1 2 3)
+            (4 5 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

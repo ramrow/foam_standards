@@ -1,0 +1,87 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+vertices
+(
+    (0 0 0)       // 0: Bottom Left
+    (0.02 0 0)    // 1: Bottom Right
+    (0.02 0.02 0) // 2: Top Right
+    (0 0.02 0)    // 3: Top Left
+    (0 0 0.001)   // 4: Bottom Left (Top Z)
+    (0.02 0 0.001)// 5: Bottom Right (Top Z)
+    (0.02 0.02 0.001) // 6: Top Right (Top Z)
+    (0 0.02 0.001)    // 7: Top Left (Top Z)
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (200 200 1) simpleGrading (1 1 1)
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+edges
+(
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+boundary
+(
+    inlet_fuel
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    inlet_air
+    {
+        type patch;
+        faces
+        (
+            (1 5 6 2)
+        );
+    }
+    walls
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+            (2 3 7 6)
+            (0 1 2 3)
+            (4 5 6 7)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+mergePatchPairs
+(
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

@@ -1,0 +1,120 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 1;
+
+scale 1;
+
+vertices
+(
+    // Outer domain vertices (Rectangular box)
+    (-2  -1  0)   // 0: Bottom Left Front
+    ( 2  -1  0)   // 1: Bottom Right Front
+    ( 2   1  0)   // 2: Top Right Front
+    (-2   1  0)   // 3: Top Left Front
+    (-2  -1  0.1) // 4: Bottom Left Back
+    ( 2  -1  0.1) // 5: Bottom Right Back
+    ( 2   1  0.1) // 6: Top Right Back
+    (-2   1  0.1) // 7: Top Left Back
+
+    // Inner cylinder surface vertices (Circular cross-section)
+    ( 0  -0.5  0)   // 8: Bottom
+    ( 0.5  0  0)    // 9: Right
+    ( 0   0.5  0)   // 10: Top
+    (-0.5  0  0)    // 11: Left
+    ( 0  -0.5  0.1) // 12: Bottom Back
+    ( 0.5  0  0.1)  // 13: Right Back
+    ( 0   0.5  0.1) // 14: Top Back
+    (-0.5  0  0.1)  // 15: Left Back
+);
+
+blocks
+(
+    // Block 1: Bottom fluid region (between outer bottom and cylinder bottom)
+    // Vertices: 0, 1, 9, 8, 4, 5, 13, 12
+    hex (0 1 9 8 4 5 13 12) (40 20 1) simpleGrading (1 1 1)
+
+    // Block 2: Right fluid region (between outer right and cylinder right)
+    // Vertices: 1, 2, 10, 9, 5, 6, 14, 13
+    hex (1 2 10 9 5 6 14 13) (20 20 1) simpleGrading (1 1 1)
+
+    // Block 3: Top fluid region (between outer top and cylinder top)
+    // Vertices: 2, 3, 11, 10, 6, 7, 15, 14
+    hex (2 3 11 10 6 7 15 14) (40 20 1) simpleGrading (1 1 1)
+
+    // Block 4: Left fluid region (between outer left and cylinder left)
+    // Vertices: 3, 0, 8, 11, 7, 4, 12, 15
+    hex (3 0 8 11 7 4 12 15) (20 20 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    walls
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+            (2 3 7 6)
+        );
+    }
+    cylinder
+    {
+        type wall;
+        faces
+        (
+            (8 9 13 12)
+            (9 10 14 13)
+            (10 11 15 14)
+            (11 8 12 15)
+        );
+    }
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 1 9 8)
+            (1 2 10 9)
+            (2 3 11 10)
+            (3 0 8 11)
+            (4 5 13 12)
+            (5 6 14 13)
+            (6 7 15 14)
+            (7 4 12 15)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

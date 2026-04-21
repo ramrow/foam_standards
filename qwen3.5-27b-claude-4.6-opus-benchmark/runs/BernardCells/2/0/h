@@ -1,0 +1,53 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      h;
+}
+
+// Bernard Cell 3D Simulation - Sensible Enthalpy Field
+// Solver: buoyantFoam
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+
+// h = Cp * T = 1005 * 302.5 = 304012.5 J/kg
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 304012.5;          // Enthalpy at 302.5 K (J/kg)
+
+boundaryField
+{
+    hotWall
+    {
+        type            calculated;
+        value           uniform 306525;    // h = Cp * T = 1005 * 305 (J/kg)
+    }
+
+    coldWall
+    {
+        type            calculated;
+        value           uniform 301500;    // h = Cp * T = 1005 * 300 (J/kg)
+    }
+
+    topWall
+    {
+        type            zeroGradient;
+    }
+
+    bottomWall
+    {
+        type            zeroGradient;
+    }
+
+    frontWall
+    {
+        type            zeroGradient;
+    }
+
+    backWall
+    {
+        type            zeroGradient;
+    }
+}

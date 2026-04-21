@@ -1,0 +1,90 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Bernard Cell Simulation Domain
+// Dimensions: 9m (x) x 1m (y) x 2m (z)
+// Hot wall at x=0 (310K), Cold wall at x=9 (300K)
+
+scale 1;
+
+vertices
+(
+    (0 0 0)    // 0: bottom-left-front
+    (9 0 0)    // 1: bottom-right-front
+    (9 1 0)    // 2: bottom-right-back
+    (0 1 0)    // 3: bottom-left-back
+    (0 0 2)    // 4: top-left-front
+    (9 0 2)    // 5: top-right-front
+    (9 1 2)    // 6: top-right-back
+    (0 1 2)    // 7: top-left-back
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (90 10 20) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    hotWall
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    coldWall
+    {
+        type patch;
+        faces
+        (
+            (1 5 6 2)
+        );
+    }
+    bottom
+    {
+        type patch;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    top
+    {
+        type patch;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+    front
+    {
+        type patch;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    back
+    {
+        type patch;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

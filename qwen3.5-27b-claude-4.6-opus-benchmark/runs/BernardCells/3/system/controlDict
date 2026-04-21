@@ -1,0 +1,70 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+// Application
+application     buoyantFoam;
+
+// Start time
+startFrom       startTime;
+
+startTime       0;
+
+// Run time
+endTime         1000;
+
+// Write interval
+writeInterval   50;
+
+// Time step
+deltaT          1;
+
+// Run time control
+adjustTimeStep  no;
+
+maxCo           1;
+
+// Output control
+functions
+{
+}
+
+// PISO settings
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+}
+
+// Turbulence
+turbulence        on;
+
+// Thermo
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+
+// Relaxation factors
+relaxationFactors
+{
+    fields
+    {
+        p           0.3;
+    }
+    equations
+    {
+        U           1;
+        h           1;
+    }
+}

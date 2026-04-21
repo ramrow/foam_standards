@@ -1,0 +1,439 @@
+<index>
+case name: offsetCylinder
+case domain: incompressible
+case category: laminar
+case solver: pimpleFoam
+</index>
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, U]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+Similar cases are ordered, with smaller numbers indicating greater similarity. For example, similar_case_1 is more similar than similar_case_2, and similar_case_2 is more similar than similar_case_3.
+<similar_case_1><index>
+case name: TJunction
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [nuTilda, p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [fvModels, cloudProperties, momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1 # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+runApplication topoSet
+runApplication $(getApplication)
+
+</allrun_script></similar_case_1>
+
+
+<similar_case_2><index>
+case name: impeller
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict, createNonConformalCouplesDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties, dynamicMeshDict]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+cd "${0%/*}" || exit 1
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+
+runApplication createNonConformalCouples -overwrite
+
+runApplication $(getApplication)
+
+</allrun_script></similar_case_2>
+
+
+<similar_case_3><index>
+case name: oscillatingInlet
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, epsilon, k, U, nut, omega]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties, dynamicMeshDict]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+cd ${0%/*} || exit 1
+
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+runApplication blockMesh
+
+runApplication createNonConformalCouples -overwrite nonCouple1 nonCouple2
+
+runApplication $(getApplication)
+
+</allrun_script></similar_case_3>
+
+
+<similar_case_4><index>
+case name: cylinder
+case domain: basic
+case category: None
+case solver: potentialFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p.orig, U.orig]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication $application -withFunctionObjects -writePhi -writep
+runApplication postProcess -func streamFunction
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_4>
+
+
+<similar_case_5><index>
+case name: pitzDaily
+case domain: compressible
+case category: LES
+case solver: rhoPimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes, fvConstraints]</dir>
+<dir>directory name: 0. File names in this directory: [p, k, U, nut, muTilda, T, alphat]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application="$(getApplication)"
+
+runApplication blockMesh -dict $FOAM_TUTORIALS/resources/blockMesh/pitzDaily
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_5>
+
+
+<similar_case_6><index>
+case name: pitzDailyPulse
+case domain: incompressible
+case category: laminar
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes]</dir>
+<dir>directory name: 0. File names in this directory: [p, U]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application="$(getApplication)"
+
+runApplication blockMesh -dict $FOAM_TUTORIALS/resources/blockMesh/pitzDaily
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_6>
+
+
+<similar_case_7><index>
+case name: pipeCyclic
+case domain: incompressible
+case category: None
+case solver: simpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, topoSetDict, decomposeParDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: 0. File names in this directory: [p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Get application directory
+application=$(getApplication)
+
+runApplication blockMesh
+runApplication topoSet
+runApplication refineHexMesh c0 -noFields -overwrite
+
+runApplication decomposePar -cellDist
+runParallel $application
+
+runApplication reconstructPar
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_7>
+
+
+<similar_case_8><index>
+case name: flowWithOpenBoundary
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [extrudeMeshDict, fvSolution, controlDict, fvSchemes, blockMeshDict]</dir>
+<dir>directory name: distortMesh. File names in this directory: [distortMesh.C]</dir>
+<dir>directory name: 0. File names in this directory: [p.orig, U.orig, k, nut, omega, T.orig]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+
+usage () {
+    exec 1>&2
+    while [ "$#" -ge 1 ]; do echo "$1"; shift; done
+    cat <<USAGE
+
+Usage: ${0##*/} [OPTIONS]
+options:
+  -d | -distort        distort the mesh
+  -h | -help           help
+  -p | -pBC <type>     set BC for p on the atmosphere patch
+  -U | -UBC <type>     set BC for U on the atmosphere patch
+
+CFD simulation to demonstrate boundary conditions at a patch with mixed inflow
+and outflow. The user can set the boundary condition on the atmosphere patch
+with options:
++ p: totalPressure (default) or fixedValue
++ U: pressureInletOutletVelocity (default) or zeroGradient
+
+USAGE
+    exit 1
+}
+
+distort () {
+    wmake distortMesh
+    runApplication distortMesh
+    rm 0/meshPhi;
+    mv 0/polyMesh/points constant/polyMesh
+    rm -rf 0/polyMesh
+}
+
+setAtmosphereBC () {
+    _field="$1"
+    _BC="$2"
+
+    echo "Setting $_field BC on atmosphere patch to $_BC"
+
+    runApplication -a foamDictionary \
+        -entry boundaryField/atmosphere/type \
+        -set "$_BC" \
+        "0/$_field" > /dev/null 2>&1
+}
+
+# VARIABLES
+distort=""
+pBC=""
+UBC=""
+
+# OPTIONS
+while [ "$#" -gt 0 ]
+do
+    case "$1" in
+    -d | -distort)
+        distort="yes"
+        shift
+        ;;
+    -h | -help)
+        usage
+        ;;
+    -p | -pBC)
+        [ "$#" -ge 2 ] || usage "'$1' option requires an argument"
+        pBC="$2"
+        shift 2
+        ;;
+    -U | -UBC)
+        [ "$#" -ge 2 ] || usage "'$1' option requires an argument"
+        UBC="$2"
+        shift 2
+        ;;
+    -test)
+        shift
+        ;;
+    -*)
+        usage "Invalid option '$1'"
+        ;;
+    *)
+        break
+        ;;
+    esac
+done
+
+case "$pBC" in
+    totalPressure|fixedValue|"") ;;
+    *)
+      usage "Invalid boundary condition '$pBC' for p."\
+            "Valid options: 'totalPressure', 'fixedValue'."
+      ;;
+esac
+
+case "$UBC" in
+    pressureInletOutletVelocity|zeroGradient|"") ;;
+    *)
+      usage "Invalid boundary condition '$UBC' for U."\
+            "Valid options: 'pressureInletOutletVelocity', 'zeroGradient'."
+      ;;
+esac
+
+# Run from this directory
+cd "${0%/*}" || exit 1
+
+# Source tutorial run functions
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+runApplication blockMesh
+[ "$distort" ] && distort
+runApplication extrudeMesh
+
+[ "$pBC" ] && setAtmosphereBC p "$pBC"
+[ "$UBC" ] && setAtmosphereBC U "$UBC"
+
+runApplication "$(getApplication)"
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_8>
+
+
+<similar_case_9><index>
+case name: pitzDaily
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, fvSchemes]</dir>
+<dir>directory name: 0. File names in this directory: [nuTilda, p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application="$(getApplication)"
+
+runApplication blockMesh -dict $FOAM_TUTORIALS/resources/blockMesh/pitzDaily
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_9>
+
+
+<similar_case_10><index>
+case name: pitzDailyExptInlet
+case domain: incompressible
+case category: None
+case solver: simpleFoam
+</index>
+
+
+<directory_structure>
+<dir>directory name: system. File names in this directory: [fvSolution, controlDict, decomposeParDict, fvSchemes]</dir>
+<dir>directory name: 0. File names in this directory: [nuTilda, p, epsilon, k, U, nut]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+</directory_structure>
+
+
+<allrun_script>
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application="$(getApplication)"
+
+runApplication blockMesh -dict $FOAM_TUTORIALS/resources/blockMesh/pitzDaily
+runApplication $application
+
+#------------------------------------------------------------------------------
+
+</allrun_script></similar_case_10>
+
+

@@ -1,0 +1,90 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Bernard Cell 3D Simulation Mesh
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+
+convertToMeters 1;
+
+vertices
+(
+    (0 0 0)    // 0: Bottom-Left-Front (Hot wall)
+    (9 0 0)    // 1: Bottom-Right-Front (Cold wall)
+    (9 1 0)    // 2: Bottom-Right-Back (Cold wall)
+    (0 1 0)    // 3: Bottom-Left-Back (Hot wall)
+    (0 0 2)    // 4: Top-Left-Front (Hot wall)
+    (9 0 2)    // 5: Top-Right-Front (Cold wall)
+    (9 1 2)    // 6: Top-Right-Back (Cold wall)
+    (0 1 2)    // 7: Top-Left-Back (Hot wall)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (36 4 8) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    hotWall
+    {
+        type patch;
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+    coldWall
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    topWall
+    {
+        type patch;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+    bottomWall
+    {
+        type patch;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    frontWall
+    {
+        type patch;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    backWall
+    {
+        type patch;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);

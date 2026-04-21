@@ -1,0 +1,232 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermo.compressibleGas;
+}
+
+// Thermo model for reactingFoam counterflow flame simulation
+// Compressible gas with detailed chemical kinetics
+
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          janafThermo;
+    equationOfState perfectGas;
+    energy          sensibleEnthalpy;
+}
+
+// Mixture settings
+mixture
+{
+    // Species list for methane combustion mechanism
+    species
+    (
+        CH4
+        O2
+        N2
+        CO2
+        H2O
+        CO
+        H2
+        OH
+        O
+        H
+        HO2
+        H2O2
+    );
+
+    // Molecular weights (kg/kmol)
+    molecularWeights
+    (
+        16.0425
+        31.9988
+        28.0134
+        44.0095
+        18.0153
+        28.0101
+        2.01588
+        17.0073
+        15.9994
+        1.00794
+        33.0063
+        34.0147
+    );
+
+    // Standard state enthalpies of formation (J/kmol) at 298.15 K
+    standardStates
+    (
+        // CH4
+        (
+            -74850
+            186.251
+            14.15
+            75.4956
+            24.268
+            -1674.0
+            298.15
+            1000
+            1
+        )
+        // O2
+        (
+            0
+            205.152
+            31.3223
+            -20.2651
+            6.4826
+            -0.001
+            298.15
+            1000
+            1
+        )
+        // N2
+        (
+            0
+            191.61
+            28.98641
+            -1.853978
+            0.5032187
+            -0.001
+            298.15
+            1000
+            1
+        )
+        // CO2
+        (
+            -393510
+            213.795
+            24.99735
+            55.18696
+            -33.69137
+            7.948387
+            298.15
+            1000
+            1
+        )
+        // H2O
+        (
+            -241826
+            188.835
+            30.092
+            6.832514
+            -2.7012
+            0.001
+            298.15
+            1000
+            1
+        )
+        // CO
+        (
+            -110525
+            197.674
+            25.56759
+            6.096139
+            -3.166874
+            0.001
+            298.15
+            1000
+            1
+        )
+        // H2
+        (
+            0
+            130.684
+            27.28124
+            2.210886
+            -1.628227
+            0.001
+            298.15
+            1000
+            1
+        )
+        // OH
+        (
+            39463
+            183.751
+            28.71247
+            4.004989
+            -0.974372
+            0.001
+            298.15
+            1000
+            1
+        )
+        // O
+        (
+            249170
+            161.059
+            25.80612
+            3.585796
+            -1.543875
+            0.001
+            298.15
+            1000
+            1
+        )
+        // H
+        (
+            218000
+            114.717
+            21.39552
+            6.837748
+            -3.102806
+            0.001
+            298.15
+            1000
+            1
+        )
+        // HO2
+        (
+            9260
+            210.6
+            37.7217
+            22.9321
+            -12.0571
+            1.8951
+            298.15
+            1000
+            1
+        )
+        // H2O2
+        (
+            -136108
+            232.95
+            30.092
+            68.32514
+            -27.012
+            0.001
+            298.15
+            1000
+            1
+        )
+    );
+
+    // Reference temperature (K)
+    Tref          298.15;
+
+    // Reference pressure (Pa)
+    pref          101325;
+
+    // Universal gas constant (J/kmol/K)
+    Ru            8314.462618;
+}
+
+// Transport properties
+transport
+{
+    // Viscosity (kg/m/s)
+    mu            1.8e-5;
+
+    // Thermal conductivity (W/m/K)
+    kappa         0.026;
+
+    // Schmidt number
+    Sc            0.7;
+
+    // Prandtl number
+    Pr            0.7;
+}

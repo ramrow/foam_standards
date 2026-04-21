@@ -1,0 +1,167 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+scale   1;
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+vertices
+(
+    (0 0 0)        // 0: bottom-left
+    (0.02 0 0)     // 1: bottom-right
+    (0.02 0.02 0)  // 2: top-right
+    (0 0.02 0)     // 3: top-left
+    (0 0 0.001)    // 4: bottom-left (z)
+    (0.02 0 0.001) // 5: bottom-right (z)
+    (0.02 0.02 0.001) // 6: top-right (z)
+    (0 0.02 0.001) // 7: top-left (z)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (200 200 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet_fuel
+    {
+        type patch;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    inlet_air
+    {
+        type patch;
+        faces
+        (
+            (1 5 6 2)
+        );
+    }
+    walls
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+            (2 3 7 6)
+        );
+    }
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (3 2 6 7)
+            (0 1 5 4) // Wait, 0-1-5-4 is bottom. 3-2-6-7 is top.
+            // Correction for 2D extrusion:
+            // Bottom: 0-1-5-4
+            // Top: 3-2-6-7
+            // Left: 0-3-7-4 (Inlet Fuel)
+            // Right: 1-2-6-5 (Inlet Air)
+            // Front: 0-1-2-3 (Inlet/Outlet plane? No, 2D means 1 cell in Z)
+            // Back: 4-5-6-7
+            // We need to define the "outlet" correctly. 
+            // In a counterflow, usually one side is fuel, one is air, and they meet in the middle.
+            // If domain is 0.02x0.02. 
+            // Let's assume:
+            // Left (x=0): Fuel Inlet
+            // Right (x=0.02): Air Inlet
+            // Top (y=0.02) and Bottom (y=0): Walls
+            // Front (z=0) and Back (z=0.001): Symmetry or Wall? 
+            // Since it's 2D, we usually set front/back as empty or symmetry.
+            // However, blockMesh requires patches.
+            // Let's define:
+            // Left: inlet_fuel
+            // Right: inlet_air
+            // Top: wall_top
+            // Bottom: wall_bottom
+            // Front: empty_front
+            // Back: empty_back
+        );
+    }
+);
+
+// Re-defining boundary to match the hex topology correctly
+// Vertices:
+// 0:(0,0,0), 1:(0.02,0,0), 2:(0.02,0.02,0), 3:(0,0.02,0)
+// 4:(0,0,0.001), 5:(0.02,0,0.001), 6:(0.02,0.02,0.001), 7:(0,0.02,0.001)
+
+// Faces:
+// 0-1-2-3 (Front, z=0) -> empty
+// 4-5-6-7 (Back, z=0.001) -> empty
+// 0-1-5-4 (Bottom, y=0) -> wall
+// 3-2-6-7 (Top, y=0.02) -> wall
+// 0-3-7-4 (Left, x=0) -> inlet_fuel
+// 1-2-6-5 (Right, x=0.02) -> inlet_air
+
+boundary
+(
+    inlet_fuel
+    {
+        type patch;
+        faces
+        (
+            (0 3 7 4)
+        );
+    }
+    inlet_air
+    {
+        type patch;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    wall_bottom
+    {
+        type wall;
+        faces
+        (
+            (0 1 5 4)
+        );
+    }
+    wall_top
+    {
+        type wall;
+        faces
+        (
+            (3 2 6 7)
+        );
+    }
+    empty_front
+    {
+        type empty;
+        faces
+        (
+            (0 1 2 3)
+        );
+    }
+    empty_back
+    {
+        type empty;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

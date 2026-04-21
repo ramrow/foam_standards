@@ -1,0 +1,82 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// Time discretization schemes
+ddtSchemes
+{
+    default         Euler;
+}
+
+// Gradient schemes
+gradSchemes
+{
+    default         Gauss linear;
+    grad(p)         Gauss linear;
+    grad(T)         Gauss linear;
+}
+
+// Divergence schemes
+divSchemes
+{
+    default         none;
+    
+    // Momentum equation
+    div(phi,U)      Gauss linearUpwind grad(U);
+    
+    // Energy/temperature equation
+    div(phi,T)      Gauss upwind;
+    div(phi,h)      Gauss upwind;
+    div(phi,e)      Gauss upwind;
+    
+    // Turbulence (if applicable)
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
+    
+    // Heat flux
+    div(q)          Gauss linear;
+    div(phi,K)      Gauss linear;
+}
+
+// Laplacian schemes
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+    laplacian(p)    Gauss linear corrected;
+    laplacian(T)    Gauss linear corrected;
+}
+
+// Interpolation schemes
+interpolationSchemes
+{
+    default         linear;
+}
+
+// Sn grad schemes
+snGradSchemes
+{
+    default         orthogonal;
+}
+
+// Surface interpolation schemes
+surfaceInterpolationSchemes
+{
+    default         linear;
+    phi             linear;
+}
+
+// Flux reconstruction schemes
+fluxReconstructionSchemes
+{
+    default         none;
+}
+
+// Wall functions (if applicable)
+wallDist
+{
+    method          meshWave;
+}

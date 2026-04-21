@@ -1,0 +1,65 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+// Bernard Cell 3D Simulation - Thermophysical Properties
+// Solver: buoyantFoam
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+
+// ============================================================================
+// THERMOPHYSICAL MODEL TYPE
+// ============================================================================
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+
+// ============================================================================
+// MIXTURE SUB-DICTIONARY
+// Required by heRhoThermo with pureMixture
+// ============================================================================
+mixture
+{
+    // Mixture type specification
+    mixtureType     pureMixture;
+    
+    // Transport model
+    transport
+    {
+        type            const;
+        mu              1.7894e-05;        // Dynamic viscosity (kg/m/s)
+        Pr              0.71;              // Prandtl number
+    }
+    
+    // Thermodynamic model
+    thermo
+    {
+        type            hConst;
+        Cp              1005;              // Specific heat (J/kg/K)
+        Hf              0;                 // Heat of formation (J/kg)
+    }
+    
+    // Equation of state
+    equationOfState
+    {
+        type            perfectGas;
+        R               287.058;           // Gas constant for air (J/kg/K)
+    }
+    
+    // Species model
+    specie
+    {
+        molWeight       28.966;            // Molecular weight (kg/kmol)
+    }
+}

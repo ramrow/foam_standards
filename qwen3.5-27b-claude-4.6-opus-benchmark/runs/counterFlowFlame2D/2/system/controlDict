@@ -1,0 +1,138 @@
+Let me analyze the requirements for a counterflow flame simulation:
+
+1. **Solver**: reactingFoam - compressible, reactive flow solver for detailed combustion
+2. **Domain**: 2D rectangular, 0.02m × 0.02m
+3. **Species**: CH4, O2, N2
+4. **Boundary conditions**:
+   - Fuel inlet: velocity = 0.2 m/s (positive direction)
+   - Air inlet: velocity = -0.1 m/s (negative direction)
+5. **Time settings**:
+   - Start time: 0 s
+   - End time: 0.5 s
+   - Write interval: 0.05 s
+   - Time step (deltaT): 1e-6 s
+
+Key considerations for reactingFoam:
+- It's a compressible solver, so we need proper thermophysical models
+- Uses PISO algorithm for pressure-velocity coupling
+- Requires species transport equations
+- Energy equation for temperature
+- Chemical kinetics for reactions
+
+The controlDict needs to include:
+- Application name: reactingFoam
+- Time settings (startTime, endTime, deltaT, writeInterval)
+- PISO algorithm settings (nCorrectors, nNonOrthogonalCorrectors)
+- Function objects for monitoring (optional but useful)
+- Runtime adjustment settings
+
+Let me create a comprehensive controlDict:
+
+```
+application     reactingFoam;
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         0.5;
+
+deltaT          1e-6;
+
+writeControl    timeStep;
+writeInterval   50000;  // 0.05s / 1e-6 = 50000 time steps
+
+
+writeFormat     ascii;
+writePrecision  6;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+
+purgeWrite      0;
+
+runTimeModifiable true;
+
+adjustTimeStep  true;
+maxCo           0.5;
+maxDeltaT       1e-6;
+
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell        0;
+    pRefValue       101325;
+}
+
+functions
+{
+    fieldMinMax
+    {
+        type            fieldMinMax;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        writeControl    timeStep;
+        writeInterval   1000;
+        fields
+        (
+            T
+            p
+            U
+        );
+    }
+}
+```
+
+I'll configure the simulation to capture detailed combustion dynamics with precise time-stepping and comprehensive field monitoring. The settings ensure accurate tracking of temperature, pressure, and velocity fields throughout the counterflow flame simulation.
+</think>
+
+```
+application     reactingFoam;
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         0.5;
+
+deltaT          1e-6;
+
+writeControl    timeStep;
+writeInterval   50000;
+writeFormat     ascii;
+writePrecision  6;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+
+purgeWrite      0;
+
+runTimeModifiable true;
+
+adjustTimeStep  true;
+maxCo           0.5;
+maxDeltaT       1e-6;
+
+PISO
+{
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell        0;
+    pRefValue       101325;
+}
+
+functions
+{
+    fieldMinMax
+    {
+        type            fieldMinMax;
+        functionObjectLibs ("libfieldFunctionObjects.so");
+        writeControl    timeStep;
+        writeInterval   1000;
+        fields
+        (
+            T
+            p
+            U
+        );
+    }
+}
+```

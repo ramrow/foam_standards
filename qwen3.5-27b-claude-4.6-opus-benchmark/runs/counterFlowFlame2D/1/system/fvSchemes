@@ -1,0 +1,109 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// Time discretization schemes
+ddtSchemes
+{
+    default         Euler;
+}
+
+// Gradient schemes
+gradSchemes
+{
+    default         Gauss linear;
+}
+
+// Divergence schemes
+divSchemes
+{
+    default         none;
+    
+    // Momentum equation
+    div(phi,U)                     bounded Gauss upwind;
+    
+    // Enthalpy equation
+    div(phi,h)                     bounded Gauss upwind;
+    
+    // Species transport equations
+    div(phi,Yi)                    bounded Gauss upwind;
+    
+    // Turbulence equations
+    div(phi,k)                     bounded Gauss upwind;
+    div(phi,omega)                 bounded Gauss upwind;
+    
+    // Density-weighted momentum
+    div(rho*phi,U)                 Gauss upwind;
+    
+    // Density-weighted enthalpy
+    div(rho*phi,h)                 bounded Gauss upwind;
+    
+    // Density-weighted species
+    div(rho*phi,Yi)                bounded Gauss upwind;
+    
+    // Density-weighted turbulence
+    div(rho*phi,k)                 bounded Gauss upwind;
+    div(rho*phi,omega)             bounded Gauss upwind;
+    
+    // Internal energy
+    div(phi,e)                     bounded Gauss upwind;
+    div(rho*phi,e)                 bounded Gauss upwind;
+    
+    // Temperature
+    div(phi,T)                     bounded Gauss upwind;
+    div(rho*phi,T)                 bounded Gauss upwind;
+    
+    // Kinetic energy
+    div(phi,K)                     bounded Gauss upwind;
+    div(rho*phi,K)                 bounded Gauss upwind;
+    
+    // Chemical source term
+    div(phi,chi)                   bounded Gauss upwind;
+}
+
+// Laplacian schemes
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+    
+    // Momentum diffusion
+    laplacian(muEff,U)             Gauss linear corrected;
+    
+    // Enthalpy diffusion
+    laplacian(alphaEff,h)          Gauss linear corrected;
+    
+    // Species diffusion
+    laplacian(Di,Yi)               Gauss linear corrected;
+    
+    // Turbulence diffusion
+    laplacian(nuEff,k)             Gauss linear corrected;
+    laplacian(nuEff,omega)         Gauss linear corrected;
+    
+    // Internal energy diffusion
+    laplacian(alphaEff,e)          Gauss linear corrected;
+    
+    // Temperature diffusion
+    laplacian(alphaEff,T)          Gauss linear corrected;
+}
+
+// Interpolation schemes
+interpolationSchemes
+{
+    default         linear;
+}
+
+// Surface normal gradient schemes
+snGradSchemes
+{
+    default         orthogonal;
+}
+
+// Wall distance calculation
+wallDist
+{
+    method          mesh;
+}

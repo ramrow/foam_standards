@@ -1,0 +1,84 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// Bernard Cell 3D Simulation - fvSchemes
+// Solver: buoyantFoam
+// Domain: 9 m (X) x 1 m (Y) x 2 m (Z)
+// Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+
+// Time derivative schemes
+ddtSchemes
+{
+    default         Euler;
+    U               CrankNicolson 0.5;
+    T               CrankNicolson 0.5;
+    p_rgh           CrankNicolson 0.5;
+}
+
+// Gradient schemes
+gradSchemes
+{
+    default         Gauss linear;
+    grad(U)        Gauss linear;
+    grad(T)        Gauss linear;
+}
+
+// Divergence schemes
+divSchemes
+{
+    default         none;
+    
+    // Continuity equation
+    div(phi)        Gauss linear;
+    
+    // Momentum equation
+    div(phi,U)      Gauss linearUpwind grad(U);
+    
+    // Energy equation - temperature convection
+    div(phi,T)      Gauss linearUpwind grad(T);
+    
+    // Turbulence terms (if applicable)
+    div(phi,k)      Gauss upwind;
+    div(phi,epsilon) Gauss upwind;
+    div(phi,omega)  Gauss upwind;
+    
+    // Diffusion terms
+    div((nu*dev2(T(grad(U))))) Gauss linear;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+    
+    // Heat flux
+    div(q)          Gauss linear;
+}
+
+// Laplacian schemes
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+    laplacian(nu,U) Gauss linear corrected;
+    laplacian(nuEff,U) Gauss linear corrected;
+    laplacian(alphaEff,T) Gauss linear corrected;
+    laplacian(1,p_rgh) Gauss linear corrected;
+}
+
+// Interpolation schemes
+interpolationSchemes
+{
+    default         linear;
+}
+
+// Surface normal gradient schemes
+snGradSchemes
+{
+    default         corrected;
+}
+
+// Wall distance calculation
+wallDist
+{
+    method          meshWave;
+}

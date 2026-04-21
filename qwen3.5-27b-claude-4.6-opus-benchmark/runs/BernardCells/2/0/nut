@@ -1,0 +1,75 @@
+I need to create the `nut` file for a 3D Bernard Cell simulation using the `buoyantFoam` solver.
+
+Let me analyze the requirements:
+1. Domain: 9 m (X) × 1 m (Y) × 2 m (Z)
+2. Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+3. Bernard Cell convection - natural convection driven by temperature differences
+
+For Bernard Cell convection:
+- The temperature difference between the walls creates a density gradient
+- This density gradient, combined with gravity, creates buoyancy forces
+- The fluid rises near the hot wall and falls near the cold wall, creating convection cells
+
+Key considerations for the gravity vector:
+1. In Bernard Cell convection, the temperature gradient is horizontal (x-direction)
+2. For natural convection to occur, gravity must act in a direction that creates buoyancy forces perpendicular to the temperature gradient
+3. The most common setup has gravity acting in the negative y-direction (downward), creating vertical convection cells
+
+Looking at the mesh:
+- X direction: 0 to 9 m (hot to cold wall)
+- Y direction: 0 to 1 m (bottom to top)
+- Z direction: 0 to 2 m (front to back)
+
+The standard Bernard Cell configuration:
+- Temperature gradient in X direction (horizontal)
+- Gravity in negative Y direction (vertical, downward)
+- This creates convection cells in the X-Y plane
+
+The gravity vector should be:
+```
+g
+{
+    g           (0 -9.81 0);  // Gravity acting downward in negative Y direction
+    gh          yes;          // Enable gravitational head correction
+    potential   phi;          // Potential field name
+}
+```
+
+Wait, I need to reconsider. Looking at the blockMeshDict:
+- The domain is 9 m (X) × 1 m (Y) × 2 m (Z)
+- Hot wall at x=0, Cold wall at x=9
+
+For Bernard Cell convection with vertical walls at different temperatures:
+- The hot wall (x=0) heats the fluid, making it less dense
+- The cold wall (x=9) cools the fluid, making it more dense
+- Gravity should act vertically (typically in the Y or Z direction) to create buoyancy
+
+Looking at the boundary names:
+- topWall and bottomWall suggest Y is the vertical direction
+- frontWall and backWall suggest Z is the spanwise direction
+
+So gravity should act in the negative Y direction: (0, -9.81, 0)
+
+However, I should also consider that Bernard Cell convection typically occurs with:
+- Hot surface at the bottom and cold surface at the top (Rayleigh-Benard convection)
+- OR hot and cold vertical walls with gravity acting perpendicular to the temperature gradient
+
+Given the setup with hot and cold vertical walls, this is more like a natural convection in a vertical enclosure. The gravity should act in the negative Y direction (downward).
+
+Let me verify the boundary conditions to ensure consistency with the gravity vector. The hot and cold walls are positioned at x=0 and x=9, with temperature differences driving natural convection. The top and bottom walls will be critical for defining the convection cell boundaries.
+
+The key is setting up the temperature and velocity boundary conditions to allow natural convection to develop. I'll need to carefully define the wall conditions to enable the fluid to move freely while maintaining the temperature gradient.
+
+The standard Bernard Cell configuration involves a horizontal temperature gradient with gravity acting perpendicular to create buoyancy-driven flow. This setup will generate characteristic convection cells as the fluid responds to the thermal and gravitational forces.
+
+I'll verify the boundary conditions to ensure they support the expected fluid dynamics, focusing on how the temperature differences will drive the natural convection pattern.
+</think>
+
+```
+g
+{
+    g           (0 -9.81 0);
+    gh          yes;
+    potential   phi;
+}
+```

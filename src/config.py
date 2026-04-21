@@ -23,14 +23,14 @@ class Config:
     models: dict = field(default_factory=lambda: {
         "general": {
             "model_provider": "vllm",
-            "model_version": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+            "model_version": "Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled",
             "temperature": 0.5,
         },
     })
 
     # Backward-compatible single-model fields used by runtime
     model_provider: str = "vllm"
-    model_version: str = "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    model_version: str = "Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled"
     temperature: float = 0.5
 
     # Embedding config kept for retrieval path

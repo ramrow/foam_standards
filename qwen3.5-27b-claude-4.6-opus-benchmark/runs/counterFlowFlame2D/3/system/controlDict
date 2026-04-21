@@ -1,0 +1,90 @@
+Let me analyze the requirements for creating a controlDict file for a counterflow flame simulation:
+
+1. **Solver**: reactingFoam - a compressible flow solver for detailed combustion modeling
+2. **Domain**: 2D rectangular, 0.02m × 0.02m
+3. **Species**: CH4, O2, N2
+4. **Boundary conditions**:
+   - Fuel inlet: velocity = 0.1 m/s
+   - Air inlet: velocity = -0.2 m/s
+5. **Simulation parameters**:
+   - Start time: 0 s
+   - End time: 0.5 s
+   - Write interval: 0.05 s
+   - Time step: 1e-6 s
+
+Now let me create the controlDict file with all necessary settings:
+
+```
+application     reactingFoam
+startFrom       startTime
+startTime       0
+stopAt          endTime
+endTime         0.5
+deltaT          1e-6
+writeControl    timeStep
+writeInterval   50000
+purgeWrite      0
+writeFormat     ascii
+writePrecision  6
+writeCompression off
+timeFormat      generic
+timePrecision   6
+runTimeModifiable yes
+
+functions
+{
+}
+```
+
+Wait, let me recalculate the writeInterval:
+- End time = 0.5 s
+- Write interval = 0.05 s
+- deltaT = 1e-6 s
+- Number of steps per write = 0.05 / 1e-6 = 50000 steps
+
+So writeInterval should be 50000 when using writeControl timeStep.
+
+Alternatively, I can use writeControl runtime with writeInterval 0.05 for more direct control.
+
+Let me use writeControl runtime as it's more intuitive for this case.
+
+Actually, for reactingFoam with detailed chemistry, it's often better to use writeControl timeStep or writeControl adjustableRunTime with adjustableTimeStep. Let me go with writeControl runtime for simplicity as the user specified a fixed deltaT.
+ 
+I'll verify the key simulation parameters to ensure accuracy. The configuration matches the specified requirements precisely, with careful attention to time stepping and output settings. The solver selection and domain specifications align perfectly with the counterflow flame simulation needs.
+</think>
+
+```
+application     reactingFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         0.5;
+
+deltaT          1e-6;
+
+writeControl    runtime;
+
+writeInterval   0.05;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression off;
+
+timeFormat      generic;
+
+timePrecision   6;
+
+runTimeModifiable yes;
+
+functions
+{
+}
+```

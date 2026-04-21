@@ -1,0 +1,54 @@
+I need to create the `constant/g` file for a 3D Bernard Cell simulation using the `buoyantFoam` solver.
+
+Let me analyze the requirements:
+1. Domain: 9 m (X) × 1 m (Y) × 2 m (Z)
+2. Hot wall at x=0 (305 K), Cold wall at x=9 (300 K)
+3. Bernard Cell convection - natural convection driven by temperature differences
+
+For Bernard Cell convection:
+- The temperature difference between the walls creates a density gradient
+- This density gradient, combined with gravity, creates buoyancy forces
+- The fluid rises near the hot wall and falls near the cold wall, creating convection cells
+
+Key considerations for the gravity vector:
+1. In Bernard Cell convection, the temperature gradient is horizontal (x-direction)
+2. For natural convection to occur, gravity must act in a direction that creates buoyancy forces perpendicular to the temperature gradient
+3. The most common setup has gravity acting in the negative y-direction (downward), creating vertical convection cells
+
+Looking at the mesh:
+- X direction: 0 to 9 m (hot to cold wall)
+- Y direction: 0 to 1 m (bottom to top)
+- Z direction: 0 to 2 m (front to back)
+
+The standard Bernard Cell configuration:
+- Temperature gradient in X direction (horizontal)
+- Gravity in negative Y direction (vertical, downward)
+- This creates convection cells in the X-Y plane
+
+The gravity vector should be:
+```
+g
+{
+    g           (0 -9.81 0);  // Gravity acting downward in negative Y direction
+    gh          yes;          // Enable gravitational head correction
+    potential   phi;          // Potential field name
+}
+
+
+```
+
+I'll verify the boundary conditions to ensure consistency with the gravity vector. The hot and cold walls are positioned at x=0 and x=9, with temperature differences driving natural convection. The top and bottom walls will be critical for defining the convection cell boundaries.
+
+The key is setting up the temperature and velocity boundary conditions to allow natural convection to develop. I'll need to carefully define the wall conditions to enable the fluid to move freely while maintaining the temperature gradient.
+
+```
+</think>
+
+```
+g
+{
+    g           (0 -9.81 0);
+    gh          yes;
+    potential   phi;
+}
+```

@@ -1,0 +1,63 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p_rgh;
+}
+
+// Modified pressure field for Bernard Cell natural convection simulation
+// Domain: 9m (x) x 1m (y) x 2m (z)
+// Hot wall at x=0 (310K), Cold wall at x=9 (300K)
+// Solver: buoyantFoam with heRhoThermo (sensibleEnthalpy)
+// Equation of state: perfectGas
+//
+// p_rgh = p - rho*g*h where h is height in gravity direction
+// This formulation removes hydrostatic pressure component for numerical stability
+// The absolute pressure is reconstructed as: p = p_rgh + rho*gh
+//
+// Reference conditions:
+//   p_ref = 101325 Pa (atmospheric)
+//   T_ref = 305 K (average of hot/cold walls)
+//   rho_ref = 1.176 kg/m^3
+//
+// Gravity: (0, 0, -9.81) m/s^2 (pointing down in -z direction)
+// At z=0 (bottom): hydrostatic pressure = p_ref
+// At z=2 (top): hydrostatic pressure = p_ref - rho_ref*g*2 ≈ 101302 Pa
+
+dimensions      [1 -1 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    hotWall
+    {
+        type            zeroGradient;
+    }
+
+    coldWall
+    {
+        type            zeroGradient;
+    }
+
+    bottom
+    {
+        type            zeroGradient;
+    }
+
+    top
+    {
+        type            zeroGradient;
+    }
+
+    front
+    {
+        type            zeroGradient;
+    }
+
+    back
+    {
+        type            zeroGradient;
+    }
+}

@@ -26,9 +26,9 @@ SUBSTEPS = [
 ]
 
 STRONG_MODEL_CFG = {
-    "model_provider": "huggingface",
-    "model_version": "/mnt/lustre/rpi/pxu10/5tune/plan/plan_results",
-    "temperature": 0.0,
+    "model_provider": "openai",
+    "model_version": "plan",
+    "temperature": 0.01,
 }
 
 
@@ -174,6 +174,7 @@ if __name__ == "__main__":
 # nohup python benchmark_finetuned.py > finetuned.log 2>&1 &
 # nohup python benchmark_finetuned.py --all_finetuned > finetuned_all.log 2>&1 &
 # python benchmark_finetuned.py --substep generate_file
+
 
 
 

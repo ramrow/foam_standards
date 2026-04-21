@@ -5,6 +5,10 @@ set -euo pipefail
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
 cd "/mnt/lustre/rpi/pxu10/official"
 
+# OpenAI-compatible endpoint from local vLLM server
+export OPENAI_API_KEY="EMPTY"
+export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
+
 echo "[1/2] Running all-finetuned 9-substep benchmark..."
 python benchmark_finetuned.py \
   --all_finetuned \
@@ -53,7 +57,6 @@ for d,c,s in rows:
     if not s:
         print(f'  - {d}/{c}')
 
-# Save a summary file
 out = './experiment-finetuned/all_finetuned/summary.txt'
 os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(out, 'w', encoding='utf-8') as f:

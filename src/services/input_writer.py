@@ -130,10 +130,10 @@ def initial_write(
 
         code_user_prompt = (
             f"User requirement: {user_requirement}\n"
-            #f"{similar_ref_block}"
-            #f"{advice_text}"
-            #"If the similar case is a weak match, do not copy it blindly. Use it only where it is consistent with the user requirement. "
-            #"Just modify the necessary parts to make the file complete and functional."
+            f"{similar_ref_block}"
+            f"{advice_text}"
+            "If the similar case is a weak match, do not copy it blindly. Use it only where it is consistent with the user requirement. "
+            "Just modify the necessary parts to make the file complete and functional."
             "Please ensure that the generated file is complete, functional, and logically sound."
             "Additionally, apply your domain expertise to verify that all numerical values are consistent with the user's requirements, maintaining accuracy and coherence."
             "When generating controlDict, do not include anything to preform post processing. Just include the necessary settings to run the simulation."

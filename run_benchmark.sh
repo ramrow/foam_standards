@@ -1,12 +1,15 @@
 #!/bin/bash
+
 set -o pipefail
 
 # 1. Activate environment
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
-
+cd /mnt/lustre/rpi/pxu10/criteria
 # 2. Set variables
-MODEL_NAME="Jackrong/Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled"
-PROJECT_TAG="qwen3.5-27b-claude-4.6-opus-benchmark"
+MODEL_NAME="Qwen/Qwen3-Coder-Next"
+PROJECT_TAG="qwen3-coder-next-benchmark"
+export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
+export OPENAI_API_KEY="EMPTY"
 export VLLM_BASE_URL="http://127.0.0.1:8000/v1"
 
 # 3. Start vLLM Server in the background
@@ -19,8 +22,7 @@ vllm serve "$MODEL_NAME" \
   --api-key EMPTY \
   --tool-call-parser hermes \
   --enable-auto-tool-choice \
-  --max-model-len 262144 \
-  --default-chat-template-kwargs '{"enable_thinking": false}' \
+  --max-model-len 65536 \
   > vllm_server.log 2>&1 &
 
 # Capture the process ID so it cleanly exits when the script finishes

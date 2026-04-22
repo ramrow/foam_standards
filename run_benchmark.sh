@@ -1,16 +1,19 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 set -o pipefail
 
 # 1. Activate environment
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
 cd /mnt/lustre/rpi/pxu10/criteria
+
 # 2. Set variables
 MODEL_NAME="Qwen/Qwen3-Coder-Next"
 PROJECT_TAG="qwen3-coder-next-benchmark"
 export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
 export OPENAI_API_KEY="EMPTY"
 export VLLM_BASE_URL="http://127.0.0.1:8000/v1"
+export FOAMAGENT_FORCE_LOCAL_RUN="1"
+# Force local runner during benchmark (avoid accidental HPC routing)
 
 # 3. Start vLLM Server in the background
 echo "Starting vLLM server..."
@@ -25,7 +28,6 @@ vllm serve "$MODEL_NAME" \
   --max-model-len 65536 \
   > vllm_server.log 2>&1 &
 
-# Capture the process ID so it cleanly exits when the script finishes
 VLLM_PID=$!
 trap 'kill "$VLLM_PID" 2>/dev/null || true' EXIT
 

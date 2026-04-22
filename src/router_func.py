@@ -1,4 +1,5 @@
-from typing import TypedDict, List, Optional
+﻿from typing import TypedDict, List, Optional
+import os
 from config import Config
 from utils import LLMService, GraphState
 from langgraph.graph import StateGraph, START, END
@@ -6,17 +7,7 @@ from langgraph.types import Command
 
 
 def llm_requires_custom_mesh(state: GraphState) -> int:
-    """
-    Use LLM to determine if user requires custom mesh based on their requirement.
-    
-    Args:
-        state: Current graph state containing user requirement and LLM service
-        
-    Returns:
-        int: 1 if custom mesh is required, 2 if gmsh mesh is required, 0 otherwise
-    """
     user_requirement = state["user_requirement"]
-    
     system_prompt = (
         "You are an expert in OpenFOAM workflow analysis. "
         "Analyze the user requirement to determine if they want to use a custom mesh file. "
@@ -28,14 +19,12 @@ def llm_requires_custom_mesh(state: GraphState) -> int:
         "Be conservative - if unsure, assume 'standard_mesh' unless clearly specified otherwise."
         "Only return 'custom_mesh' or 'standard_mesh' or 'gmsh_mesh'. Don't return anything else."
     )
-    
     user_prompt = (
         f"User requirement: {user_requirement}\n\n"
         "Determine if the user wants to use a custom mesh file. "
         "Return exactly 'custom_mesh' if they want to use a custom mesh file, "
         "'standard_mesh' if they want standard OpenFOAM mesh generation or 'gmsh_mesh' if they want to create mesh using gmsh."
     )
-    
     response = state["llm_service"].invoke(user_prompt, system_prompt)
     if "custom_mesh" in response.lower():
         return 1
@@ -46,17 +35,14 @@ def llm_requires_custom_mesh(state: GraphState) -> int:
 
 
 def llm_requires_hpc(state: GraphState) -> bool:
-    """
-    Use LLM to determine if user requires HPC/cluster execution based on their requirement.
-    
-    Args:
-        state: Current graph state containing user requirement and LLM service
-        
-    Returns:
-        bool: True if HPC execution is required, False otherwise
-    """
+    force_local = os.getenv("FOAMAGENT_FORCE_LOCAL_RUN", "").strip().lower() in {"1", "true", "yes"}
+    force_hpc = os.getenv("FOAMAGENT_FORCE_HPC_RUN", "").strip().lower() in {"1", "true", "yes"}
+    if force_local and not force_hpc:
+        return False
+    if force_hpc and not force_local:
+        return True
+
     user_requirement = state["user_requirement"]
-    
     system_prompt = (
         "You are an expert in OpenFOAM workflow analysis. "
         "Analyze the user requirement to determine if they want to run the simulation on HPC (High Performance Computing) or locally. "
@@ -67,24 +53,13 @@ def llm_requires_hpc(state: GraphState) -> bool:
         "Be conservative - if unsure, assume local run unless clearly specified otherwise."
         "Only return 'hpc_run' or 'local_run'. Don't return anything else."
     )
-    
-    user_prompt = (
-        f"User requirement: {user_requirement}\n\n"
-        "return 'hpc_run' or 'local_run'"
-    )
-    
+    user_prompt = (f"User requirement: {user_requirement}\n\n" "return 'hpc_run' or 'local_run'")
     response = state["llm_service"].invoke(user_prompt, system_prompt)
     return "hpc_run" in response.lower()
 
 
 def llm_requires_visualization(state: GraphState) -> bool:
-    """Use LLM to decide whether to run the visualization node.
-
-    Policy: ONLY visualize when the user explicitly asks for it.
-    If uncertain, default to NO visualization (avoid expensive/flaky post-processing).
-    """
     user_requirement = state["user_requirement"]
-
     system_prompt = (
         "You are an expert in OpenFOAM workflow analysis. "
         "Analyze the user requirement to determine if they explicitly want visualization/post-processing of results. "
@@ -94,21 +69,12 @@ def llm_requires_visualization(state: GraphState) -> bool:
         "If they do not mention visualization, or you are unsure, return 'no_visualization'. "
         "Only return 'yes_visualization' or 'no_visualization'."
     )
-
-    user_prompt = (
-        f"User requirement: {user_requirement}\n\n"
-        "Return exactly: 'yes_visualization' or 'no_visualization'."
-    )
-
+    user_prompt = (f"User requirement: {user_requirement}\n\n" "Return exactly: 'yes_visualization' or 'no_visualization'.")
     response = state["llm_service"].invoke(user_prompt, system_prompt)
     return "yes_visualization" in response.lower()
 
 
 def route_after_planner(state: GraphState):
-    """
-    Route after planner node based on whether user wants custom mesh.
-    For current version, if user wants custom mesh, user should be able to provide a path to the mesh file.
-    """
     mesh_type = state.get("mesh_type", "standard_mesh")
     if mesh_type == "custom_mesh":
         print("Router: Custom mesh requested. Routing to meshing node.")
@@ -122,15 +88,10 @@ def route_after_planner(state: GraphState):
 
 
 def route_after_input_writer(state: GraphState):
-    """
-    Route after input_writer node based on whether user wants to run on HPC.
-    Prefer planner-cached decision to avoid repeated LLM routing jitter.
-    """
     requires_hpc = state.get("requires_hpc")
     if requires_hpc is None:
         requires_hpc = llm_requires_hpc(state)
         state["requires_hpc"] = requires_hpc
-
     if requires_hpc:
         print("Router: HPC run requested. Routing to hpc_runner node.")
         return "hpc_runner"
@@ -138,18 +99,18 @@ def route_after_input_writer(state: GraphState):
         print("Router: Local run requested. Routing to local_runner node.")
         return "local_runner"
 
+
 def route_after_runner(state: GraphState):
     if state.get("error_logs") and len(state["error_logs"]) > 0:
         return "reviewer"
-
     requires_visualization = state.get("requires_visualization")
     if requires_visualization is None:
         requires_visualization = llm_requires_visualization(state)
         state["requires_visualization"] = requires_visualization
-
     if requires_visualization:
         return "visualization"
     return END
+
 
 def route_after_reviewer(state: GraphState):
     loop_count = state.get("loop_count", 0)
@@ -162,6 +123,5 @@ def route_after_reviewer(state: GraphState):
             requires_visualization = llm_requires_visualization(state)
             state["requires_visualization"] = requires_visualization
         return "visualization" if requires_visualization else END
-
     print(f"Loop {loop_count}: Continuing to fix errors.")
     return "input_writer"

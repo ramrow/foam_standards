@@ -13,7 +13,8 @@ export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
 export OPENAI_API_KEY="EMPTY"
 export VLLM_BASE_URL="http://127.0.0.1:8000/v1"
 export FOAMAGENT_FORCE_LOCAL_RUN="1"
-# Force local runner during benchmark (avoid accidental HPC routing)
+export FOAMAGENT_DISABLE_VISUALIZATION="1"
+export FOAMAGENT_TEMPERATURE="0.1"
 
 # 3. Start vLLM Server in the background
 echo "Starting vLLM server..."
@@ -26,6 +27,7 @@ vllm serve "$MODEL_NAME" \
   --tool-call-parser hermes \
   --enable-auto-tool-choice \
   --max-model-len 65536 \
+  --trust-remote-code \
   > vllm_server.log 2>&1 &
 
 VLLM_PID=$!

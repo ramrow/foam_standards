@@ -35,6 +35,7 @@ def llm_requires_custom_mesh(state: GraphState) -> int:
 
 
 def llm_requires_hpc(state: GraphState) -> bool:
+    # Deterministic overrides for benchmark/repro runs
     force_local = os.getenv("FOAMAGENT_FORCE_LOCAL_RUN", "").strip().lower() in {"1", "true", "yes"}
     force_hpc = os.getenv("FOAMAGENT_FORCE_HPC_RUN", "").strip().lower() in {"1", "true", "yes"}
     if force_local and not force_hpc:
@@ -59,6 +60,10 @@ def llm_requires_hpc(state: GraphState) -> bool:
 
 
 def llm_requires_visualization(state: GraphState) -> bool:
+    # Benchmark-safe override: disable visualization artifact generation
+    if os.getenv("FOAMAGENT_DISABLE_VISUALIZATION", "").strip().lower() in {"1", "true", "yes"}:
+        return False
+
     user_requirement = state["user_requirement"]
     system_prompt = (
         "You are an expert in OpenFOAM workflow analysis. "
@@ -103,10 +108,12 @@ def route_after_input_writer(state: GraphState):
 def route_after_runner(state: GraphState):
     if state.get("error_logs") and len(state["error_logs"]) > 0:
         return "reviewer"
+
     requires_visualization = state.get("requires_visualization")
     if requires_visualization is None:
         requires_visualization = llm_requires_visualization(state)
         state["requires_visualization"] = requires_visualization
+
     if requires_visualization:
         return "visualization"
     return END
@@ -118,10 +125,8 @@ def route_after_reviewer(state: GraphState):
     if loop_count >= max_loop:
         print(f"Maximum loop count ({max_loop}) reached. Ending workflow.")
         state["termination_reason"] = "max_review_loop_reached"
-        requires_visualization = state.get("requires_visualization")
-        if requires_visualization is None:
-            requires_visualization = llm_requires_visualization(state)
-            state["requires_visualization"] = requires_visualization
-        return "visualization" if requires_visualization else END
+        # End directly in benchmark mode; do not route to visualization scripts
+        return END
+
     print(f"Loop {loop_count}: Continuing to fix errors.")
     return "input_writer"

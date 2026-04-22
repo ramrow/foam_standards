@@ -8,7 +8,7 @@ from pathlib import Path
 class Config:
     max_loop: int = 25
     batchsize: int = 10
-    searchdocs: int = 10
+    searchdocs: int = 3
     run_times: int = 1
     database_path: str = Path(__file__).resolve().parent.parent / "database"
     run_directory: str = Path(__file__).resolve().parent.parent / "runs"
@@ -24,14 +24,14 @@ class Config:
         "general": {
             "model_provider": "vllm",
             "model_version": "Qwen/Qwen3-Coder-Next",
-            "temperature": 0.5,
+            "temperature": 0.1,
         },
     })
 
     # Backward-compatible single-model fields used by runtime
     model_provider: str = "vllm"
     model_version: str = "Qwen/Qwen3-Coder-Next"
-    temperature: float = 0.5
+    temperature: float = 0.1
 
     # Embedding config kept for retrieval path
     embedding_provider: str = "huggingface"
@@ -72,3 +72,4 @@ class Config:
         print(f"[Config] model_provider={self.model_provider}")
         print(f"[Config] model_version={self.model_version}")
         print(f"[Config] temperature={self.temperature}")
+

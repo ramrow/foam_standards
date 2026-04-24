@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Optional
+﻿from typing import TypedDict, List, Optional
 from config import Config
 from utils import LLMService, GraphState
 from langgraph.graph import StateGraph, START, END
@@ -36,7 +36,7 @@ def llm_requires_custom_mesh(state: GraphState) -> int:
         "'standard_mesh' if they want standard OpenFOAM mesh generation or 'gmsh_mesh' if they want to create mesh using gmsh."
     )
     
-    response = state["llm_service"].invoke("plan", user_prompt, system_prompt)
+    response = state["llm_service"].invoke("plan", user_prompt, system_prompt, log_context={"step": "plan", "substep": "parse_case_info"})
     if "custom_mesh" in response.lower():
         return 1
     elif "gmsh_mesh" in response.lower():
@@ -73,7 +73,7 @@ def llm_requires_hpc(state: GraphState) -> bool:
         "return 'hpc_run' or 'local_run'"
     )
     
-    response = state["llm_service"].invoke("plan", user_prompt, system_prompt)
+    response = state["llm_service"].invoke("plan", user_prompt, system_prompt, log_context={"step": "plan", "substep": "parse_case_info"})
     return "hpc_run" in response.lower()
 
 
@@ -100,7 +100,7 @@ def llm_requires_visualization(state: GraphState) -> bool:
         "Return exactly: 'yes_visualization' or 'no_visualization'."
     )
 
-    response = state["llm_service"].invoke("plan", user_prompt, system_prompt)
+    response = state["llm_service"].invoke("plan", user_prompt, system_prompt, log_context={"step": "plan", "substep": "parse_case_info"})
     return "yes_visualization" in response.lower()
 
 
@@ -165,3 +165,4 @@ def route_after_reviewer(state: GraphState):
 
     print(f"Loop {loop_count}: Continuing to fix errors.")
     return "input_writer"
+

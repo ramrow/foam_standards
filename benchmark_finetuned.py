@@ -27,8 +27,8 @@ SUBSTEPS = [
 
 STRONG_MODEL_CFG = {
     "model_provider": "openai",
-    "model_version": "plan",
-    "temperature": 0.01,
+    "model_version": "parse_case_info",
+    "temperature": 0.1,
 }
 
 
@@ -39,12 +39,12 @@ def load_finetuned_config(path: str) -> dict:
 
 
 def build_finetuned_config(substep: str, ft_cfg: dict) -> dict:
-    """All 3 services use STRONG; one substep is overridden with its fine-tuned model."""
+    """Service-level defaults use valid loaded aliases; one substep is overridden."""
     return {
         "models": {
-            "plan":   STRONG_MODEL_CFG,
-            "write":  STRONG_MODEL_CFG,
-            "review": STRONG_MODEL_CFG,
+            "plan":   {"model_provider": "openai", "model_version": "parse_case_info", "temperature": 0.1},
+            "write":  {"model_provider": "openai", "model_version": "generate_file", "temperature": 0.1},
+            "review": {"model_provider": "openai", "model_version": "error_analysis", "temperature": 0.1},
         },
         "substep_model_overrides": {
             substep: ft_cfg[substep],
@@ -53,16 +53,15 @@ def build_finetuned_config(substep: str, ft_cfg: dict) -> dict:
 
 
 def build_all_finetuned_config(ft_cfg: dict) -> dict:
-    """All 3 services use STRONG; all substeps present in ft_cfg use their fine-tuned model."""
+    """Service-level defaults use valid loaded aliases; all substeps override appropriately."""
     return {
         "models": {
-            "plan":   STRONG_MODEL_CFG,
-            "write":  STRONG_MODEL_CFG,
-            "review": STRONG_MODEL_CFG,
+            "plan":   {"model_provider": "openai", "model_version": "parse_case_info", "temperature": 0.1},
+            "write":  {"model_provider": "openai", "model_version": "generate_file", "temperature": 0.1},
+            "review": {"model_provider": "openai", "model_version": "error_analysis", "temperature": 0.1},
         },
         "substep_model_overrides": dict(ft_cfg),
     }
-
 
 def run_benchmark(dataset, case, substep_label, model_config_path):
     """Run foambench_main.py for one (dataset, case) with a pre-written config JSON."""
@@ -174,6 +173,8 @@ if __name__ == "__main__":
 # nohup python benchmark_finetuned.py > finetuned.log 2>&1 &
 # nohup python benchmark_finetuned.py --all_finetuned > finetuned_all.log 2>&1 &
 # python benchmark_finetuned.py --substep generate_file
+
+
 
 
 

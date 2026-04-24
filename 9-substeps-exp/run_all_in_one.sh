@@ -45,7 +45,7 @@ echo "[2/4] Waiting for vLLM to become ready..."
 python - <<'PY'
 import time, requests
 url = "http://127.0.0.1:8000/v1/models"
-for i in range(240):
+for i in range(900):
     try:
         r = requests.get(url, headers={"Authorization": "Bearer EMPTY"}, timeout=5)
         if r.status_code == 200:

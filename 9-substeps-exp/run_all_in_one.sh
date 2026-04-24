@@ -26,6 +26,8 @@ vllm serve "$BASE_MODEL" \
   --trust-remote-code \
   --enable-lora \
   --max-lora-rank 32 \
+  --generation-config vllm \
+  --override-generation-config '{"temperature": 0.5, "repetition_penalty": 1.1, "top_k": 30, "top_p": 0.7}' \
   --lora-modules \
     parse_case_info=/mnt/lustre/rpi/pxu10/9tune/parse_case_info/parse_case_info_results \
     build_advice=/mnt/lustre/rpi/pxu10/9tune/build_advice/build_advice_results \

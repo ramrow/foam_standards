@@ -9,6 +9,8 @@ vllm serve "$BASE_MODEL" \
   --tensor-parallel-size 4 \
   --dtype bfloat16 \
   --api-key EMPTY \
+  --enable-auto-tool-choice \
+  --tool-call-parser hermes \
   --enable-lora \
   --lora-modules \
     plan=/mnt/lustre/rpi/pxu10/5tune/plan/plan_results \

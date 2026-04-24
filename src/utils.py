@@ -1,4 +1,4 @@
-# utils.py
+﻿# utils.py
 import re
 import subprocess
 import os
@@ -1246,7 +1246,7 @@ def check_foam_errors(directory: str) -> list:
                 print(f"Warning: file {file} contains 'error' but does not match expected format.")
 
     # Safety-net: if no explicit ERROR was found, check for missing 'End' marker
-    # Check EACH log individually – a successful blockMesh should not mask a
+    # Check EACH log individually â€“ a successful blockMesh should not mask a
     # crashed solver (e.g. pimpleFoam).
     if not error_logs and log_contents:
         end_pattern = re.compile(r"^\s*End\s*$", re.MULTILINE)
@@ -1433,3 +1433,4 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+

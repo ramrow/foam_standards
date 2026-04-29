@@ -1,4 +1,15 @@
 ﻿#!/bin/bash
+#SBATCH -N 1
+#SBATCH -G 4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=64
+#SBATCH -q regular
+#SBATCH -t 12:00:00
+#SBATCH -C gpu&hbm80g
+#SBATCH -A m4789
+#SBATCH -J gpu_job
+#SBATCH -o slurm/%j.out
+#SBATCH -e slurm/%j.err
 set -euo pipefail
 
 source /pscratch/sd/p/peijingx/ablation/.venv/bin/activate
@@ -160,4 +171,6 @@ for ko, ok, total, _ in rows:
     pct = (100.0 * ok / total) if total else 0.0
     print(f'{ko}: {ok}/{total} ({pct:.2f}%)')
 PY
+
+
 

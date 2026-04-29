@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 #SBATCH -N 1
 #SBATCH -G 4
 #SBATCH --ntasks-per-node=1
@@ -18,7 +18,8 @@ cd /pscratch/sd/p/peijingx/ablation
 BASE_MODEL="unsloth/Nemotron-3-Nano-30B-A3B"
 PORT=8000
 
-source /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh`nexport OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
+source /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh
+export OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
 export OPENAI_API_BASE="http://127.0.0.1:${PORT}/v1"
 unset OPENAI_ORG_ID
 unset OPENAI_ORGANIZATION
@@ -109,7 +110,8 @@ for cfg in "$CFG_DIR"/knockout_*.json; do
   fi
 done
 
-echo "[4/5] All single-knockout runs finished."`necho "vLLM log: ./9-substeps-exp/vllm_single_knockout.log"
+echo "[4/5] All single-knockout runs finished."
+echo "vLLM log: ./9-substeps-exp/vllm_single_knockout.log"
 
 echo "[5/5] Summarizing single-knockout ablation results..."
 python - <<'PY'
@@ -120,6 +122,8 @@ out_root = './experiment-finetuned/single_knockout'
 summary_path = os.path.join(out_root, 'ablation_summary.txt')
 
 knockouts = sorted([d for d in os.listdir(out_root) if d.startswith('knockout_') and os.path.isdir(os.path.join(out_root, d))])
+baseline = 'baseline_all_finetuned'
+all_runs = ([baseline] if os.path.isdir(os.path.join(out_root, baseline)) else []) + knockouts
 
 def case_success(case_path: str) -> bool:
     if not os.path.isdir(case_path):
@@ -139,7 +143,7 @@ def case_success(case_path: str) -> bool:
     return False
 
 rows = []
-for ko in knockouts:
+for ko in all_runs:
     base = os.path.join(out_root, ko, 'runs')
     total = 0
     ok = 0
@@ -155,7 +159,7 @@ for ko in knockouts:
     rows.append((ko, ok, total, failed))
 
 with open(summary_path, 'w', encoding='utf-8') as f:
-    f.write('Single-knockout ablation summary\n')
+    f.write('Single-knockout ablation summary (with baseline)\n')
     f.write('================================\n')
     for ko, ok, total, failed in rows:
         pct = (100.0 * ok / total) if total else 0.0
@@ -170,7 +174,3 @@ for ko, ok, total, _ in rows:
     pct = (100.0 * ok / total) if total else 0.0
     print(f'{ko}: {ok}/{total} ({pct:.2f}%)')
 PY
-
-
-
-

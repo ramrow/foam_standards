@@ -18,8 +18,7 @@ cd /pscratch/sd/p/peijingx/ablation
 BASE_MODEL="unsloth/Nemotron-3-Nano-30B-A3B"
 PORT=8000
 
-export OPENAI_API_KEY="EMPTY"
-export OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
+source /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh`nexport OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
 export OPENAI_API_BASE="http://127.0.0.1:${PORT}/v1"
 unset OPENAI_ORG_ID
 unset OPENAI_ORGANIZATION
@@ -171,6 +170,7 @@ for ko, ok, total, _ in rows:
     pct = (100.0 * ok / total) if total else 0.0
     print(f'{ko}: {ok}/{total} ({pct:.2f}%)')
 PY
+
 
 
 

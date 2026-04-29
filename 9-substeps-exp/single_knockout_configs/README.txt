@@ -1,0 +1,9 @@
+﻿parse_case_info => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+build_advice => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+decompose_subtasks => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+generate_file => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+allrun_commands => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+allrun_script => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+error_analysis => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+rewrite_plan => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases
+rewrite_files => base(unsloth/Nemotron-3-Nano-30B-A3B), others finetuned aliases

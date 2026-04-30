@@ -1434,3 +1434,4 @@ def parse_directory_structure(data: str) -> dict:
 
     return directory_file_counts
 
+

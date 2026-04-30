@@ -12,6 +12,8 @@ BASE_MODEL="unsloth/Nemotron-3-Nano-30B-A3B"
 PORT=8000
 
 source /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh
+# Override to local vLLM auth for benchmark runs
+export OPENAI_API_KEY="EMPTY"
 export OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
 export OPENAI_API_BASE="http://127.0.0.1:${PORT}/v1"
 unset OPENAI_ORG_ID
@@ -99,3 +101,4 @@ fi
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
+

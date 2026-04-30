@@ -11,11 +11,21 @@ cd "/pscratch/sd/p/peijingx/ablation"
 BASE_MODEL="unsloth/Nemotron-3-Nano-30B-A3B"
 PORT=8000
 
+# Source secrets (can define OPENAI_EMBED_API_KEY / OPENAI_EMBED_BASE_URL)
 source /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh
-# Override to local vLLM auth for benchmark runs
+
+# Chat/completions must go to local vLLM
 export OPENAI_API_KEY="EMPTY"
 export OPENAI_BASE_URL="http://127.0.0.1:${PORT}/v1"
 export OPENAI_API_BASE="http://127.0.0.1:${PORT}/v1"
+
+# Embeddings must go to real OpenAI
+export OPENAI_EMBED_BASE_URL="${OPENAI_EMBED_BASE_URL:-https://api.openai.com/v1}"
+if [[ -z "${OPENAI_EMBED_API_KEY:-}" ]]; then
+  echo "ERROR: OPENAI_EMBED_API_KEY is not set. Put it in /pscratch/sd/p/peijingx/ablation/secrets/openai_env.sh"
+  exit 1
+fi
+
 unset OPENAI_ORG_ID
 unset OPENAI_ORGANIZATION
 
@@ -27,6 +37,7 @@ RUN_NAME="${1:-}"
 if [[ -z "$RUN_NAME" ]]; then
   echo "ERROR: Missing run name."
   echo "Use: baseline or knockout_<substep>"
+  ls "$CFG_DIR"/knockout_*.json 2>/dev/null | sed 's#.*/##; s#\.json$##' || true
   exit 1
 fi
 
@@ -43,6 +54,11 @@ if [[ ! -f "$CFG_PATH" ]]; then
   exit 1
 fi
 
+echo "OPENAI_BASE_URL=$OPENAI_BASE_URL"
+echo "OPENAI_API_KEY=$OPENAI_API_KEY"
+echo "OPENAI_EMBED_BASE_URL=$OPENAI_EMBED_BASE_URL"
+echo "OPENAI_EMBED_API_KEY_SET=${OPENAI_EMBED_API_KEY:+yes}"
+
 echo "[1/4] Starting vLLM..."
 vllm serve "$BASE_MODEL" \
   --host 127.0.0.1 \
@@ -52,7 +68,7 @@ vllm serve "$BASE_MODEL" \
   --api-key EMPTY \
   --enable-auto-tool-choice \
   --tool-call-parser hermes \
-  --max-model-len 65536 \
+  --max-model-len 16384 \
   --trust-remote-code \
   --enable-lora \
   --max-lora-rank 32 \
@@ -101,4 +117,3 @@ fi
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
-

@@ -41,7 +41,17 @@ def get_embedding_model(config: Optional[Config] = None):
     model = cfg.embedding_model
 
     if provider == "openai":
-        return OpenAIEmbeddings(model=model)
+        # Keep embeddings on real OpenAI even when chat/completions use local vLLM.
+        emb_base = os.getenv("OPENAI_EMBED_BASE_URL", "https://api.openai.com/v1")
+        emb_key = os.getenv("OPENAI_EMBED_API_KEY")
+        if not emb_key:
+            raise ValueError("OPENAI_EMBED_API_KEY is required for openai embeddings.")
+
+        return OpenAIEmbeddings(
+            model=model,
+            api_key=emb_key,
+            base_url=emb_base,
+        )
     if provider == "huggingface":
         if HuggingFaceEmbeddings is None:
             raise ImportError(
@@ -1433,5 +1443,6 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 

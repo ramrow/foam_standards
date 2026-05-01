@@ -11,7 +11,7 @@ if not WM_PROJECT_DIR:
     print("Error: WM_PROJECT_DIR is not set in the environment.")
     exit(1)
 
-EXP_FINETUNED = "./experiment-finetuned"
+EXP_FINETUNED_DEFAULT = "./experiment-finetuned"
 
 SUBSTEPS = [
     "parse_case_info",
@@ -63,23 +63,23 @@ def build_all_finetuned_config(ft_cfg: dict) -> dict:
         "substep_model_overrides": dict(ft_cfg),
     }
 
-def run_benchmark(dataset, case, substep_label, model_config_path):
+def run_benchmark(dataset, case, substep_label, model_config_path, exp_root):
     """Run foambench_main.py for one (dataset, case) with a pre-written config JSON."""
     folder_path = os.path.abspath(os.path.join(DIR_BASIC, dataset, str(case)))
     requirement_txt_path = os.path.abspath(os.path.join(folder_path, "usr_requirement.txt"))
 
     output_folder = os.path.abspath(os.path.join(
-        EXP_FINETUNED, substep_label, "runs", dataset, str(case)
+        exp_root, substep_label, "runs", dataset, str(case)
     ))
     os.makedirs(output_folder, exist_ok=True)
 
     case_id = f"Basic/{dataset}/{case}"
     dataset_log_path = os.path.abspath(os.path.join(
-        EXP_FINETUNED, substep_label, "results", dataset, str(case), "dataset.jsonl"
+        exp_root, substep_label, "results", dataset, str(case), "dataset.jsonl"
     ))
 
     output_text_path = os.path.abspath(os.path.join(
-        EXP_FINETUNED, substep_label, "results", dataset, str(case), "output.txt"
+        exp_root, substep_label, "results", dataset, str(case), "output.txt"
     ))
     os.makedirs(os.path.dirname(output_text_path), exist_ok=True)
 
@@ -121,6 +121,7 @@ if __name__ == "__main__":
         "--workers", type=int, default=1,
         help="Number of parallel workers (default: 1; vLLM loads model per process â€” increase only if VRAM allows)."
     )
+    parser.add_argument("--output_root", type=str, default=EXP_FINETUNED_DEFAULT, help="Root output dir (default: ./experiment-finetuned)")
     args = parser.parse_args()
 
     ft_cfg = load_finetuned_config(args.finetuned_config)
@@ -146,8 +147,9 @@ if __name__ == "__main__":
                 continue
             runs.append((s, build_finetuned_config(s, ft_cfg)))
 
+    exp_root = os.path.abspath(args.output_root)
     for substep_label, model_config in runs:
-        config_dir = os.path.abspath(os.path.join(EXP_FINETUNED, substep_label))
+        config_dir = os.path.abspath(os.path.join(exp_root, substep_label))
         os.makedirs(config_dir, exist_ok=True)
         model_config_path = os.path.join(config_dir, "model_config.json")
         with open(model_config_path, 'w') as f:
@@ -157,7 +159,7 @@ if __name__ == "__main__":
         print(f"Config written to: {model_config_path}")
 
         tasks = [
-            (dataset, case, substep_label, model_config_path)
+            (dataset, case, substep_label, model_config_path, exp_root)
             for dataset in DATASETS_BASIC
             for case in CASES_BASIC
         ]
@@ -173,6 +175,7 @@ if __name__ == "__main__":
 # nohup python benchmark_finetuned.py > finetuned.log 2>&1 &
 # nohup python benchmark_finetuned.py --all_finetuned > finetuned_all.log 2>&1 &
 # python benchmark_finetuned.py --substep generate_file
+
 
 
 

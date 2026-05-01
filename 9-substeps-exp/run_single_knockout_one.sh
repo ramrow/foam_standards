@@ -44,10 +44,14 @@ fi
 if [[ "$RUN_NAME" == "baseline" ]]; then
   CFG_PATH="./9-substeps-exp/finetuned_models.json"
   OUT_DIR="$OUT_ROOT/baseline_all_finetuned"
+  TEMP_ROOT="$OUT_DIR"
 else
   CFG_PATH="$CFG_DIR/${RUN_NAME}.json"
   OUT_DIR="$OUT_ROOT/${RUN_NAME}"
+  TEMP_ROOT="$OUT_DIR"
 fi
+
+mkdir -p "$TEMP_ROOT/runs" "$TEMP_ROOT/results"
 
 if [[ ! -f "$CFG_PATH" ]]; then
   echo "ERROR: Config not found: $CFG_PATH"
@@ -108,12 +112,10 @@ echo "[3/4] Running benchmark for: $RUN_NAME"
 python benchmark_finetuned.py \
   --all_finetuned \
   --finetuned_config "$CFG_PATH" \
+  --output_root "$TEMP_ROOT" \
   --workers 1
 
-if [[ -d "./experiment-finetuned/all_finetuned" ]]; then
-  rm -rf "$OUT_DIR"
-  mv "./experiment-finetuned/all_finetuned" "$OUT_DIR"
-fi
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
+

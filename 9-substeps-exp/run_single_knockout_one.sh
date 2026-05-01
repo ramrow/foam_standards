@@ -28,6 +28,11 @@ fi
 
 unset OPENAI_ORG_ID
 unset OPENAI_ORGANIZATION
+# Force local execution path; never route to HPC/SLURM generation.
+export FOAMAGENT_FORCE_LOCAL_RUN=1
+unset FOAMAGENT_FORCE_HPC_RUN
+echo "FOAMAGENT_FORCE_LOCAL_RUN=$FOAMAGENT_FORCE_LOCAL_RUN"
+echo "FOAMAGENT_FORCE_HPC_RUN=${FOAMAGENT_FORCE_HPC_RUN:-<unset>}"
 
 CFG_DIR="./9-substeps-exp/single_knockout_configs"
 OUT_ROOT="./experiment-finetuned/single_knockout"
@@ -72,7 +77,7 @@ vllm serve "$BASE_MODEL" \
   --api-key EMPTY \
   --enable-auto-tool-choice \
   --tool-call-parser hermes \
-  --max-model-len 16384 \
+  --max-model-len 131072 \
   --trust-remote-code \
   --enable-lora \
   --max-lora-rank 32 \
@@ -118,4 +123,5 @@ python benchmark_finetuned.py \
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
+
 

@@ -13,6 +13,7 @@ if not WM_PROJECT_DIR:
 
 EXP_FINETUNED_DEFAULT = "./experiment-finetuned"
 
+CASE_TIMEOUT_SEC = int(os.environ.get("FOAMAGENT_CASE_TIMEOUT_SEC", "900"))
 SUBSTEPS = [
     "parse_case_info",
     "build_advice",
@@ -25,11 +26,27 @@ SUBSTEPS = [
     "rewrite_files",
 ]
 
-STRONG_MODEL_CFG = {
-    "model_provider": "openai",
-    "model_version": "parse_case_info",
-    "temperature": 0.1,
-}
+
+
+def has_non_openfoam_garbage(case_dir: str) -> tuple[bool, list[str]]:
+    """Minimal artifact guard: delete only *.py and *.slurm in case root."""
+    bad = []
+    try:
+        for name in os.listdir(case_dir):
+            if name.endswith(".py") or name.endswith(".slurm"):
+                p = os.path.join(case_dir, name)
+                try:
+                    if os.path.isdir(p):
+                        import shutil
+                        shutil.rmtree(p, ignore_errors=True)
+                    else:
+                        os.remove(p)
+                    bad.append(name)
+                except Exception as e:
+                    bad.append(f"<delete_failed:{name}:{e}>")
+    except Exception as e:
+        bad.append(f"<scan_error:{e}>")
+    return (len(bad) > 0, bad)
 
 
 def load_finetuned_config(path: str) -> dict:
@@ -68,19 +85,13 @@ def run_benchmark(dataset, case, substep_label, model_config_path, exp_root):
     folder_path = os.path.abspath(os.path.join(DIR_BASIC, dataset, str(case)))
     requirement_txt_path = os.path.abspath(os.path.join(folder_path, "usr_requirement.txt"))
 
-    output_folder = os.path.abspath(os.path.join(
-        exp_root, substep_label, "runs", dataset, str(case)
-    ))
+    output_folder = os.path.abspath(os.path.join(exp_root, "runs", dataset, str(case)))
     os.makedirs(output_folder, exist_ok=True)
 
     case_id = f"Basic/{dataset}/{case}"
-    dataset_log_path = os.path.abspath(os.path.join(
-        exp_root, substep_label, "results", dataset, str(case), "dataset.jsonl"
-    ))
+    dataset_log_path = os.path.abspath(os.path.join(exp_root, "results", dataset, str(case), "dataset.jsonl"))
 
-    output_text_path = os.path.abspath(os.path.join(
-        exp_root, substep_label, "results", dataset, str(case), "output.txt"
-    ))
+    output_text_path = os.path.abspath(os.path.join(exp_root, "results", dataset, str(case), "output.txt"))
     os.makedirs(os.path.dirname(output_text_path), exist_ok=True)
 
     command = (
@@ -96,7 +107,7 @@ def run_benchmark(dataset, case, substep_label, model_config_path, exp_root):
 
     with open(output_text_path, 'w') as f:
         try:
-            subprocess.run(command, shell=True, check=True, stdout=f, stderr=f)
+            subprocess.run(command, shell=True, check=True, stdout=f, stderr=f, timeout=CASE_TIMEOUT_SEC)
         except subprocess.CalledProcessError as e:
             print(f"Error running benchmark for {dataset}/{case}: {e}")
 
@@ -149,7 +160,7 @@ if __name__ == "__main__":
 
     exp_root = os.path.abspath(args.output_root)
     for substep_label, model_config in runs:
-        config_dir = os.path.abspath(os.path.join(exp_root, substep_label))
+        config_dir = os.path.abspath(exp_root)
         os.makedirs(config_dir, exist_ok=True)
         model_config_path = os.path.join(config_dir, "model_config.json")
         with open(model_config_path, 'w') as f:
@@ -175,13 +186,6 @@ if __name__ == "__main__":
 # nohup python benchmark_finetuned.py > finetuned.log 2>&1 &
 # nohup python benchmark_finetuned.py --all_finetuned > finetuned_all.log 2>&1 &
 # python benchmark_finetuned.py --substep generate_file
-
-
-
-
-
-
-
 
 
 

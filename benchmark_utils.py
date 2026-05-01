@@ -19,7 +19,7 @@ DATASETS_BASIC = [
     "shallowWaterWithSquareBump",
     "damBreakWithObstacle"
 ]
-CASES_BASIC = [1]
+CASES_BASIC = [1, 2, 3]
 
 DATASETS_ADVANCED = [
     "Cavity_LES",
@@ -39,4 +39,5 @@ DATASETS_ADVANCED = [
     "obliqueShock_LES",
     "wedge_SA"
 ]
+
 

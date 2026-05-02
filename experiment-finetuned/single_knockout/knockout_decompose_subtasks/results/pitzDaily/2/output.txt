@@ -1,0 +1,94 @@
+Loading FAISS indices from: /pscratch/sd/p/peijingx/ablation/database/faiss/text-embedding-3-small with model: text-embedding-3-small
+args: Namespace(prompt_path='/pscratch/sd/p/peijingx/ablation/Dataset/Basic/pitzDaily/2/usr_requirement.txt', output_dir='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2', custom_mesh_path=None, reuse_generated_dir='', dataset_log_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/results/pitzDaily/2/dataset.jsonl', case_id='Basic/pitzDaily/2', model_config_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/model_config.json')
+config: Config(max_loop=10, batchsize=10, searchdocs=2, run_times=1, database_path=PosixPath('/pscratch/sd/p/peijingx/ablation/database'), run_directory=PosixPath('/pscratch/sd/p/peijingx/ablation/runs'), case_dir='', max_time_limit=360, recursion_limit=100, input_writer_generation_mode='parallel_no_context', dataset_log_path='', case_id='', embedding_provider='openai', embedding_model='text-embedding-3-small', models={'plan': {'model_provider': 'bedrock', 'model_version': 'arn:aws:bedrock:us-west-2:567316078106:inference-profile/us.anthropic.claude-opus-4-6-v1', 'temperature': 0.0}, 'write': {'model_provider': 'bedrock', 'model_version': 'arn:aws:bedrock:us-west-2:567316078106:inference-profile/us.anthropic.claude-opus-4-6-v1', 'temperature': 0.0}, 'review': {'model_provider': 'bedrock', 'model_version': 'arn:aws:bedrock:us-west-2:567316078106:inference-profile/us.anthropic.claude-opus-4-6-v1', 'temperature': 0.0}}, substep_model_overrides={})
+No custom mesh path provided.
+Starting Foam-Agent...
+*** service=plan, model_version=parse_case_info ***
+Retrieval query:
+case name: pitzDaily
+case domain: incompressible
+case category: RAS
+case solver: pimpleFoam
+Retrieved 10 candidates from FAISS.
+Domain-matched structure candidates (top-3):
+  1. pitzDaily | incompressible | RAS | pimpleFoam | score=1.0866895081562689e-06
+  2. pitzDailyLTS | incompressible | RAS | pimpleFoam | score=0.029155921190977097
+  3. pitzDailyPulse | incompressible | laminar | pimpleFoam | score=0.1098441332578659
+*** service=plan, model_version=build_advice ***
+*** service=plan, model_version=unsloth/Nemotron-3-Nano-30B-A3B ***
+Parsed case name: pitzDaily
+Parsed case domain: incompressible
+Parsed case category: RAS
+Parsed case solver: pimpleFoam
+Created case directory: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2
+Retrieved similar case structure: <dir>directory name: 0. File names in this directory: [U, epsilon, k, nuTilda, nut, p]</dir>
+<dir>directory name: system. File names in this directory: [blockMeshDict, controlDict, fvSchemes, fvSolution]</dir>
+<dir>directory name: constant. File names in this directory: [momentumTransport, physicalProperties]</dir>
+Generated 12 subtasks.
+Similar case advice: match_level='high' use_scope='Use the reference pitzDaily/incompressible/RAS/pimpleFoam case as the primary template for all files including 0/ (boundary conditions), constant/ (transportProperties, turbulenceProperties, polyMesh), and system/ (controlDict, fvSchemes, fvSolution).' advice='Directly adopt the matched pitzDaily RAS/pimpleFoam tutorial as the baseline template, adjusting only the specific parameter values (inlet velocity to 15 m/s, nu to 1e-05, deltaT to 0.0001, writeInterval to 0.01, endTime to 0.3) while preserving the existing mesh, turbulence model setup, schemes, and PIMPLE solver configuration.'
+Warning: Case directory /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2 already exists. Overwriting.
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/similar_case.txt
+*** service=plan, model_version=parse_case_info ***
+Planner determined: Standard mesh generation.
+Planner set mesh_type to: standard_mesh
+*** service=plan, model_version=parse_case_info ***
+Planner set requires_hpc=False, requires_visualization=False
+Router: Standard mesh generation. Routing to input_writer node.
+============================== Initial Write Agent ==============================
+============================== Initial Write Mode ==============================
+Input writer mode: parallel_no_context (no cross-file context)
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/constant/physicalProperties
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/constant/momentumTransport
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/system/controlDict
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/p
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/U
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/nuTilda
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/nut
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/epsilon
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/0/k
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/system/fvSchemes
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/system/fvSolution
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/system/blockMeshDict
+*** service=plan, model_version=allrun_commands ***
+Need 2 commands.
+*** service=plan, model_version=allrun_script ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/Allrun
+Router: HPC disabled for ablation. Routing to local_runner node.
+============================== Runner ==============================
+Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2
+Running Allrun (attempt 1/1)
+Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2
+Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2/Allrun
+Warning: file log.pimpleFoam contains 'error' but does not match expected format.
+Allrun executed successfully without errors.
+Workflow completed successfully!
+
+<LLM Service Statistics>
+Total calls: 19
+Failed calls: 0
+Total retries: 0
+Total prompt tokens: 16948
+Total completion tokens: 3682
+Total tokens: 20630
+Average prompt tokens per call: 892.00
+Average completion tokens per call: 193.79
+Average tokens per call: 1085.79
+
+</LLM Service Statistics>
+Namespace(openfoam_path='/global/cfs/cdirs/m4756/theseus/OpenFOAM-10', output='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2', prompt_path='/pscratch/sd/p/peijingx/ablation/Dataset/Basic/pitzDaily/2/usr_requirement.txt', custom_mesh_path=None, dataset_log_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/results/pitzDaily/2/dataset.jsonl', case_id='Basic/pitzDaily/2', model_config_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/model_config.json')
+Main workflow command: python src/main.py --prompt_path='/pscratch/sd/p/peijingx/ablation/Dataset/Basic/pitzDaily/2/usr_requirement.txt' --output_dir='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/runs/pitzDaily/2' --dataset_log_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/results/pitzDaily/2/dataset.jsonl' --case_id='Basic/pitzDaily/2' --model_config_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/knockout_decompose_subtasks/model_config.json'
+Starting workflow...
+Finished command: Return Code 0
+Workflow command finished.

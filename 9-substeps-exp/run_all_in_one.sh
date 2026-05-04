@@ -4,7 +4,7 @@ set -euo pipefail
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
 cd /mnt/lustre/rpi/pxu10/official
 
-BASE_MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
+BASE_MODEL="Qwen/Qwen3.5-Coder-30B-A3B-Instruct"
 PORT=8000
 
 export OPENAI_API_KEY="EMPTY"
@@ -13,11 +13,11 @@ export OPENAI_API_BASE="http://127.0.0.1:${PORT}/v1"
 unset OPENAI_ORG_ID
 unset OPENAI_ORGANIZATION
 
-echo "[1/4] Starting vLLM with Qwen3 base + 9 LoRA adapters..."
+echo "[1/4] Starting single vLLM with Qwen3.5 base + 9 LoRA adapters \(no split serving\)..."
 vllm serve "$BASE_MODEL" \
   --host 127.0.0.1 \
   --port ${PORT} \
-  --tensor-parallel-size 4 \
+  --tensor-parallel-size 6 \
   --dtype bfloat16 \
   --api-key EMPTY \
   --enable-auto-tool-choice \
@@ -26,8 +26,7 @@ vllm serve "$BASE_MODEL" \
   --trust-remote-code \
   --enable-lora \
   --max-lora-rank 32 \
-  --generation-config vllm \
-  --override-generation-config '{"temperature": 0.5, "repetition_penalty": 1.1, "top_k": 30, "top_p": 0.7}' \
+  --default-chat-template-kwargs '{"enable_thinking": false}' \
   --lora-modules \
     parse_case_info=/mnt/lustre/rpi/pxu10/9tune/parse_case_info/parse_case_info_results \
     build_advice=/mnt/lustre/rpi/pxu10/9tune/build_advice/build_advice_results \
@@ -111,3 +110,4 @@ print(f'Wrote: {out}')
 PY
 
 echo "Done. vLLM log: ./9-substeps-exp/vllm_lora.log"
+

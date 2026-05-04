@@ -1,4 +1,4 @@
-﻿from typing import TypedDict, List, Optional
+from typing import TypedDict, List, Optional
 from config import Config
 from utils import LLMService, GraphState
 from langgraph.graph import StateGraph, START, END
@@ -46,35 +46,8 @@ def llm_requires_custom_mesh(state: GraphState) -> int:
 
 
 def llm_requires_hpc(state: GraphState) -> bool:
-    """
-    Use LLM to determine if user requires HPC/cluster execution based on their requirement.
-    
-    Args:
-        state: Current graph state containing user requirement and LLM service
-        
-    Returns:
-        bool: True if HPC execution is required, False otherwise
-    """
-    user_requirement = state["user_requirement"]
-    
-    system_prompt = (
-        "You are an expert in OpenFOAM workflow analysis. "
-        "Analyze the user requirement to determine if they want to run the simulation on HPC (High Performance Computing) or locally. "
-        "Look for keywords like: HPC, cluster, supercomputer, SLURM, PBS, job queue, "
-        "parallel computing, distributed computing, or any mention of running on remote systems. "
-        "If the user explicitly mentions or implies they want to run on HPC/cluster, return 'hpc_run'. "
-        "If they want to run locally or don't specify, return 'local_run'. "
-        "Be conservative - if unsure, assume local run unless clearly specified otherwise."
-        "Only return 'hpc_run' or 'local_run'. Don't return anything else."
-    )
-    
-    user_prompt = (
-        f"User requirement: {user_requirement}\n\n"
-        "return 'hpc_run' or 'local_run'"
-    )
-    
-    response = state["llm_service"].invoke("plan", user_prompt, system_prompt, log_context={"step": "plan", "substep": "parse_case_info"})
-    return "hpc_run" in response.lower()
+    """Force local execution in official ablation/benchmark workflows."""
+    return False
 
 
 def llm_requires_visualization(state: GraphState) -> bool:
@@ -131,12 +104,8 @@ def route_after_input_writer(state: GraphState):
         requires_hpc = llm_requires_hpc(state)
         state["requires_hpc"] = requires_hpc
 
-    if requires_hpc:
-        print("Router: HPC run requested. Routing to hpc_runner node.")
-        return "hpc_runner"
-    else:
-        print("Router: Local run requested. Routing to local_runner node.")
-        return "local_runner"
+    print("Router: HPC disabled. Routing to local_runner node.")
+    return "local_runner"
 
 def route_after_runner(state: GraphState):
     if state.get("error_logs") and len(state["error_logs"]) > 0:
@@ -165,4 +134,5 @@ def route_after_reviewer(state: GraphState):
 
     print(f"Loop {loop_count}: Continuing to fix errors.")
     return "input_writer"
+
 

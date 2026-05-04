@@ -4,7 +4,7 @@ set -euo pipefail
 source /mnt/lustre/rpi/pxu10/agent/bin/activate
 cd /mnt/lustre/rpi/pxu10/official
 
-BASE_MODEL="Qwen/Qwen3.5-Coder-30B-A3B-Instruct"
+BASE_MODEL="Qwen/Qwen3-Coder-30B-A3B-Instruct"
 PORT=8000
 
 export OPENAI_API_KEY="EMPTY"
@@ -22,21 +22,13 @@ vllm serve "$BASE_MODEL" \
   --api-key EMPTY \
   --enable-auto-tool-choice \
   --tool-call-parser hermes \
-  --max-model-len 65536 \
+  --max-model-len 32760 \
+  --max-num-batched-tokens 32760 \
   --trust-remote-code \
   --enable-lora \
   --max-lora-rank 32 \
-  --default-chat-template-kwargs '{"enable_thinking": false}' \
-  --lora-modules \
-    parse_case_info=/mnt/lustre/rpi/pxu10/9tune/parse_case_info/parse_case_info_results \
-    build_advice=/mnt/lustre/rpi/pxu10/9tune/build_advice/build_advice_results \
-    decompose_subtasks=/mnt/lustre/rpi/pxu10/9tune/decompose_subtasks/decompose_subtasks_results \
-    generate_file=/mnt/lustre/rpi/pxu10/9tune/generate_file/generate_file_results \
-    allrun_commands=/mnt/lustre/rpi/pxu10/9tune/allrun_commands/allrun_commands_results \
-    allrun_script=/mnt/lustre/rpi/pxu10/9tune/allrun_script/allrun_script_results \
-    error_analysis=/mnt/lustre/rpi/pxu10/9tune/error_analysis/error_analysis_results \
-    rewrite_plan=/mnt/lustre/rpi/pxu10/9tune/rewrite_plan/rewrite_plan_results \
-    rewrite_files=/mnt/lustre/rpi/pxu10/5tune/rewrite/rewrite_results \
+  --lora-modules \\
+    qwen3_all=/mnt/lustre/rpi/pxu10/1tune/qwen3/qwen3_results \\
   > ./9-substeps-exp/vllm_lora.log 2>&1 &
 
 VLLM_PID=$!
@@ -110,4 +102,6 @@ print(f'Wrote: {out}')
 PY
 
 echo "Done. vLLM log: ./9-substeps-exp/vllm_lora.log"
+
+
 

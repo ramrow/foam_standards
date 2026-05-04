@@ -1,0 +1,44 @@
+Ablation Study Summary (Single-Knockout, 33 cases each)
+Generated: 2026-05-02
+
+Definition
+- Baseline: all 9 substeps use finetuned aliases.
+- Single-knockout: exactly 1 substep replaced by base model per run.
+	- knockout_<name_of_substep_replaced_by_base_model>
+- Baseline_all_finetuned: baseline run I believe it should'be been 10/33 but one of the Cavity cases ran out of time
+- Total evaluated per run: 33 cases.
+
+Results
+- baseline_all_finetuned: success=9,  failure=24
+- knockout_allrun_commands: success=10, failure=23
+- knockout_allrun_script: success=6,  failure=27
+- knockout_build_advice: success=10, failure=23
+- knockout_decompose_subtasks: success=4,  failure=29
+- knockout_error_analysis: success=2,  failure=31
+- knockout_generate_file: success=0,  failure=33
+- knockout_parse_case_info: success=0,  failure=33
+- knockout_rewrite_files: success=3,  failure=30
+- knockout_rewrite_plan: success=5,  failure=28
+
+Aggregate
+- Total runs summarized: 10
+- Total cases evaluated: 330
+- Total successes: 49
+- Total failures: 281
+- Overall success rate: 14.85%
+- Overall failure rate: 85.15%
+
+Notes
+- Counts are based on the latest 33-case summaries previously produced in this ablation workflow.
+- Known frequent failure sources include OpenFOAM runtime/config errors and downstream vLLM instability after repeated review/rewrite loops.
+
+Failure Reasons (requested focus)
+- knockout_parse_case_info (0/33):
+  - Frequent mis-parsing/misclassification of case metadata (domain/category/solver/template mapping), which leads to wrong case scaffolding.
+  - This cascades into invalid OpenFOAM field/patch setups (e.g., missing required fields like  /T, patch-name mismatches), causing early solver failures.
+  - Repeated reviewer/rewrite loops then increase LLM traffic until local vLLM instability/connection-refused appears in some runs.
+
+- knockout_generate_file (0/33):
+  - Generated file content is often structurally/plausibly wrong for the target case (field dictionaries, boundary blocks, thermo/turbulence settings, or Allrun-consistent file set).
+  - High-severity artifact example observed: oversized/degenerate generated files (notably constant/momentumTransport) that destabilize downstream steps.
+  - Resulting OpenFOAM runtime errors plus retry loops frequently end in workflow collapse (including occasional vLLM engine death/connection loss).

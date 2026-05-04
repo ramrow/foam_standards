@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -euo pipefail
 
 # Usage:
@@ -8,7 +8,7 @@ set -euo pipefail
 source /pscratch/sd/p/peijingx/ablation/.venv/bin/activate
 cd "/pscratch/sd/p/peijingx/ablation"
 
-BASE_MODEL="unsloth/Nemotron-3-Nano-30B-A3B"
+BASE_MODEL="nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 PORT=8000
 
 # Source secrets (can define OPENAI_EMBED_API_KEY / OPENAI_EMBED_BASE_URL)
@@ -49,6 +49,10 @@ fi
 if [[ "$RUN_NAME" == "baseline" ]]; then
   CFG_PATH="./9-substeps-exp/finetuned_models.json"
   OUT_DIR="$OUT_ROOT/baseline_all_finetuned"
+  TEMP_ROOT="$OUT_DIR"
+elif [[ "$RUN_NAME" == "two_base_build_advice_allrun_commands" ]]; then
+  CFG_PATH="$CFG_DIR/two_base_build_advice_allrun_commands.json"
+  OUT_DIR="$OUT_ROOT/$RUN_NAME"
   TEMP_ROOT="$OUT_DIR"
 else
   CFG_PATH="$CFG_DIR/${RUN_NAME}.json"
@@ -123,5 +127,6 @@ python benchmark_finetuned.py \
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
+
 
 

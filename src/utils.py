@@ -1,4 +1,4 @@
-﻿# utils.py
+# utils.py
 import re
 import subprocess
 import os
@@ -352,7 +352,7 @@ class _VLLMChatWrapper:
         self,
         model: str,
         temperature: float = 0.0,
-        max_tokens: int = 8192,
+        max_tokens: int = 8190,
         *,
         tensor_parallel_size: int = 1,
         dtype: str = "bfloat16",
@@ -664,7 +664,7 @@ class LLMService:
                 client=bedrock_runtime,
                 model_id=model_version,
                 temperature=temperature,
-                max_tokens=8192
+                max_tokens=8190
             )
         elif model_provider.lower() == "anthropic":
             return ChatAnthropic(
@@ -688,7 +688,7 @@ class LLMService:
             return _VLLMChatWrapper(
                 model=model_version,
                 temperature=temperature,
-                max_tokens=8192,
+                max_tokens=8190,
                 tensor_parallel_size=tp,
                 dtype=dtype,
                 quantization=quant,
@@ -1246,7 +1246,7 @@ def check_foam_errors(directory: str) -> list:
                 print(f"Warning: file {file} contains 'error' but does not match expected format.")
 
     # Safety-net: if no explicit ERROR was found, check for missing 'End' marker
-    # Check EACH log individually â€“ a successful blockMesh should not mask a
+    # Check EACH log individually – a successful blockMesh should not mask a
     # crashed solver (e.g. pimpleFoam).
     if not error_logs and log_contents:
         end_pattern = re.compile(r"^\s*End\s*$", re.MULTILINE)
@@ -1433,4 +1433,5 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 

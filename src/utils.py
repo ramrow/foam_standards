@@ -1,4 +1,4 @@
-﻿# utils.py
+# utils.py
 import re
 import subprocess
 import os
@@ -683,10 +683,13 @@ class LLMService:
             )
         elif model_provider.lower() == "openai":
             # Usage-based API access (requires OPENAI_API_KEY or equivalent OpenAI SDK config)
+            # For local vLLM OpenAI-compatible serving, allow repetition penalty tuning via env.
+            repeat_penalty = float(os.getenv("FOAMAGENT_REPEAT_PENALTY", "1.15"))
             return init_chat_model(
                 model_version,
                 model_provider="openai",
                 temperature=temperature,
+                model_kwargs={"repetition_penalty": repeat_penalty},
             )
         elif model_provider.lower() in {"huggingface", "hf"}:
             # Local inference via vLLM. model_version is a HuggingFace repo id or a local path.
@@ -1256,7 +1259,7 @@ def check_foam_errors(directory: str) -> list:
                 print(f"Warning: file {file} contains 'error' but does not match expected format.")
 
     # Safety-net: if no explicit ERROR was found, check for missing 'End' marker
-    # Check EACH log individually â€“ a successful blockMesh should not mask a
+    # Check EACH log individually – a successful blockMesh should not mask a
     # crashed solver (e.g. pimpleFoam).
     if not error_logs and log_contents:
         end_pattern = re.compile(r"^\s*End\s*$", re.MULTILINE)
@@ -1443,6 +1446,9 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
+
+
 
 
 

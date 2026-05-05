@@ -86,6 +86,7 @@ vllm serve "$BASE_MODEL" \
   --enable-lora \
   --max-lora-rank 32 \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
+  --override-generation-config '{"temperature": 0.1, "repetition_penalty": 1.2, "top_p": 1.0}' \
   --lora-modules \
     parse_case_info=/pscratch/sd/p/peijingx/ablation/nemo/parse_case_info/final_adapter \
     build_advice=/pscratch/sd/p/peijingx/ablation/nemo/build_advice/final_adapter \
@@ -127,6 +128,7 @@ python benchmark_finetuned.py \
 
 echo "[4/4] Done: $RUN_NAME"
 echo "Output: $OUT_DIR"
+
 
 
 

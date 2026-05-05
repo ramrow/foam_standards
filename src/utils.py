@@ -683,13 +683,10 @@ class LLMService:
             )
         elif model_provider.lower() == "openai":
             # Usage-based API access (requires OPENAI_API_KEY or equivalent OpenAI SDK config)
-            # For local vLLM OpenAI-compatible serving, allow repetition penalty tuning via env.
-            repeat_penalty = float(os.getenv("FOAMAGENT_REPEAT_PENALTY", "1.15"))
             return init_chat_model(
                 model_version,
                 model_provider="openai",
                 temperature=temperature,
-                model_kwargs={"repetition_penalty": repeat_penalty},
             )
         elif model_provider.lower() in {"huggingface", "hf"}:
             # Local inference via vLLM. model_version is a HuggingFace repo id or a local path.
@@ -1446,6 +1443,7 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
 
 
 

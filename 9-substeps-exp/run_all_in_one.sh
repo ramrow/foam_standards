@@ -27,7 +27,7 @@ vllm serve "$BASE_MODEL" \
   --enable-lora \
   --max-lora-rank 32 \
   --generation-config vllm \
-  --override-generation-config '{"temperature": 0.5, "repetition_penalty": 1.1, "top_k": 30, "top_p": 0.7}' \
+  --override-generation-config '{"temperature": 0.1, "repetition_penalty": 1.2, "top_p": 1.0}' \
   --lora-modules \
     parse_case_info=/mnt/lustre/rpi/pxu10/9tune/parse_case_info/parse_case_info_results \
     build_advice=/mnt/lustre/rpi/pxu10/9tune/build_advice/build_advice_results \
@@ -111,3 +111,4 @@ print(f'Wrote: {out}')
 PY
 
 echo "Done. vLLM log: ./9-substeps-exp/vllm_lora.log"
+

@@ -79,45 +79,96 @@ The error is clear:
 Expected a '(' while reading VectorSpace<Form, Cmpt, Ncmpts>, found on line 10 the doubleScalar 9.81
 ```
 
-This means the `shallowWaterFoam` solver is trying to read `g` as a **vector** (since shallow water equations require gravity as a vector quantity), but the `gravitationalProperties` file defines `g` as a **scalar** value (`9.81`). The solver expects `g` to be a vector like `g [0 1 -2 0 0 0 0] (0 0 -9.81)` because shallow water flows are typically in the horizontal plane (x-y), and gravity acts in the negative z-direction.
+This means that `shallowWaterFoam` expects `g` to be a **vector** (gravity as a vector quantity), but the current `gravitationalProperties` file defines it as a **scalar** value (`9.81`). In OpenFOAM, gravity is typically defined as a vector pointing in the negative z-direction for shallow water simulations.
 
 ## Root Cause
 
-The `gravitationalProperties` file defines `g` as a scalar:
+The `shallowWaterFoam` solver reads gravity as a **vector field** (specifically, a `dimensionedVector` named `g`), not as a scalar. The current `gravitationalProperties` file defines `g` as a scalar:
+
 ```
 g               g [ 0 1 -2 0 0 0 0 ] 9.81;
 ```
 
-But `shallowWaterFoam` expects `g` to be a **vector** because the shallow water equations involve gravity acting in a specific direction (typically the negative z-direction for a 2D horizontal flow).
+But `shallowWaterFoam` expects something like:
 
-## Proposed Solution
-
-**Modify `constant/gravitationalProperties`** to define `g` as a vector instead of a scalar. Change line 10 from:
-```
-g               g [ 0 1 -2 0 0 0 0 ] 9.81;
-```
-to:
 ```
 g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
 ```
 
-This defines `g` as a vector with components (0, 0, -9.81), which is the standard representation for gravity acting in the negative z-direction. The shallow water equations in `shallowWaterFoam` are formulated for 2D horizontal flow (x-y plane), so gravity acts perpendicular to the flow plane (in the z-direction).
+## Proposed Solution
 
-## Additional Notes
+**Modify `constant/gravitationalProperties`** to define `g` as a vector pointing in the negative z-direction (since the simulation is in the x-y plane with depth in z):
 
-1. **Consistency with other files**: The `h0.orig` and `hTotal` files reference a boundary patch called `topAndBottom`, but the `blockMeshDict` defines separate patches `top` and `bottom` (both with `type empty`). The boundary conditions in `h0.orig` and `hTotal` should reference `top` and `bottom` instead of `topAndBottom` for consistency. However, this is not the cause of the current error — it would cause a later error after the simulation starts.
+```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      gravitationalProperties;
+}
 
-2. **`h.orig` and `hTotal`**: These files also reference `topAndBottom` instead of `top` and `bottom`. After fixing the `gravitationalProperties` file, you should also update these two files to use `top` and `bottom` instead of `topAndBottom` for consistency.
+g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
+```
 
-3. **`setFieldsDict`**: The `regions` entry uses `boxToCell` with a box that extends to `z = 1`, but the domain only has `z` extent from 0 to 0.1. The box should be `(0.4 0.4 0) (0.6 0.6 0.1)` to stay within the computational domain. However, this is not causing the current error — it would affect the initial field setup.
+This defines `g` as a dimensioned vector with components `(0 0 -9.81)`, which is the standard convention for shallow water simulations where gravity acts in the negative z-direction.
+
+## Additional Issue: Boundary Condition Mismatch
+
+Looking at the `h0.orig` file, there are boundary patches named `inlet`, `outlet`, `sides`, and `topAndBottom`, but the `blockMeshDict` defines patches named `inlet`, `outlet`, `sides`, `top`, and `bottom`. The `h0.orig` file references `topAndBottom` which doesn't exist in the mesh, and is missing entries for `top` and `bottom`.
+
+**Proposed fix for `constant/h0.orig`:**
+
+- Remove the `topAndBottom` entry (since it doesn't exist in the mesh).
+- Add entries for `top` and `bottom` with `type empty;`.
+
+The corrected `h0.orig` boundary section should be:
+
+```
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+    outlet
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+    sides
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+    top
+    {
+        type            empty;
+    }
+    bottom
+    {
+        type            empty;
+    }
+}
+```
+
+Similarly, the `hTotal` file has the same boundary patch mismatch issue and should be updated in the same way.
+
+## Summary of Changes
+
+1. **`constant/gravitationalProperties`**: Change `g` from a scalar `9.81` to a vector `(0 0 -9.81)`.
+2. **`constant/h0.orig`**: Replace `topAndBottom` with separate `top` and `bottom` entries (both `type empty;`).
+3. **`constant/hTotal`**: Apply the same boundary patch fixes as `h0.orig`.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Change g from scalar to vector: replace g [ 0 1 -2 0 0 0 0 ] 9.81 with g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81)'}, {'file': '0/h.orig', 'changes': 'Change topAndBottom boundary patch name to top and bottom; replace topAndBottom entry with top entry of type empty and bottom entry of type empty'}, {'file': '0/hTotal', 'changes': 'Change topAndBottom boundary patch name to top and bottom; replace topAndBottom entry with top entry of type empty and bottom entry of type empty'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Change g from scalar 9.81 to vector (0 0 -9.81) so shallowWaterFoam can read it as a vector quantity'}, {'file': 'constant/h0.orig', 'changes': 'Remove topAndBottom entry; Add top entry with type empty; Add bottom entry with type empty'}, {'file': 'constant/hTotal', 'changes': 'Remove topAndBottom entry; Add top entry with type empty; Add bottom entry with type empty'}]}
 Loop 1: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1/constant/gravitationalProperties
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1/0/h.orig
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1/0/hTotal
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1/constant/h0.orig
+Warning: Skipping unplanned rewrite file: 0/hTotal
 Router: HPC disabled for ablation. Routing to local_runner node.
 ============================== Runner ==============================
 Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1
@@ -138,27 +189,36 @@ The error is:
 keyword rotating is undefined in dictionary "constant/gravitationalProperties"
 ```
 
-The `shallowWaterFoam` solver reads the `gravitationalProperties` file and expects a keyword called `rotating` to be present. This is a boolean flag that tells the solver whether to include Coriolis effects (rotating frame of reference) in the shallow water equations. Since the user requirement is a standard shallow water simulation (no mention of rotating frame), the `rotating` keyword should be set to `no` (or `false`).
+This means that `shallowWaterFoam` is looking for a keyword called `rotating` in the `gravitationalProperties` dictionary. This is a boolean flag that tells the solver whether to include Coriolis effects (rotating frame of reference) in the shallow water equations.
 
 ## Root Cause
 
-The `gravitationalProperties` file is missing the `rotating` keyword. The solver looks for it and fails because it's not defined.
+The `shallowWaterFoam` solver (which is based on the `shallowWaterFoam` solver from OpenFOAM's `shallowWaterFoam` tutorial) includes a `rotating` keyword in its `gravitationalProperties` dictionary. This keyword is used to enable/disable Coriolis force terms in the momentum equation. The current `gravitationalProperties` file does not contain this keyword.
 
 ## Proposed Solution
 
-**Add the `rotating` keyword to `constant/gravitationalProperties`**. Add the line:
-```
-rotating        no;
-```
-
-This tells the solver that the simulation is not in a rotating reference frame, which is consistent with the user requirement of a standard shallow water simulation over a square bump. The file should then have:
+**Add the `rotating` keyword to `constant/gravitationalProperties`**. Since this is a simple square bump simulation without any mention of rotation or Coriolis effects, the appropriate value is `no` (or `false`):
 
 ```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      gravitationalProperties;
+}
+
 g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
 rotating        no;
 ```
 
-This is the only change needed. The `rotating` keyword is a standard entry in `gravitationalProperties` for `shallowWaterFoam` — its presence (even with value `no`) satisfies the solver's lookup requirement.
+This adds the required `rotating` keyword with a value of `no`, which disables the Coriolis force terms that `shallowWaterFoam` would otherwise try to use. This is consistent with the user requirement of a simple shallow water simulation over a square bump — no rotation effects are intended.
+
+## Summary
+
+- **File to modify**: `constant/gravitationalProperties`
+- **Change**: Add the line `rotating no;` to the dictionary.
 *** service=review, model_version=rewrite_plan ***
 Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Add rotating no; after the g entry line'}]}
 Loop 2: Continuing to fix errors.
@@ -185,38 +245,33 @@ The error is:
 keyword div(phiv,hU) is undefined in dictionary "system/fvSchemes/divSchemes"
 ```
 
-The `shallowWaterFoam` solver is looking for a divergence scheme entry called `div(phiv,hU)` in the `fvSchemes` file, but it doesn't exist. The solver uses `phiv` (volumetric flux of velocity) rather than `phi` (mass flux) for the convection term in the momentum equation.
+This means that `shallowWaterFoam` is looking for a divergence scheme for the flux `div(phiv,hU)`, but the current `fvSchemes` file only defines `div(phi,hU)`. The solver uses `phiv` (volumetric flux) rather than `phi` (mass flux) for the convective term in the shallow water equations.
 
 ## Root Cause
 
-The `fvSchemes` file defines `div(phi,hU)` but the solver expects `div(phiv,hU)`. The `shallowWaterFoam` solver uses `phiv` (the velocity flux) rather than `phi` (the mass flux) for the convective term in the momentum equation. This is a common naming convention difference between solvers.
+In `shallowWaterFoam`, the convective term in the momentum equation uses `phiv` (the face-normal volumetric flux, i.e., `phi/h`) rather than `phi` (the mass flux, i.e., `rho*phi`). The `divSchemes` sub-dictionary in `fvSchemes` needs to define a scheme for `div(phiv,hU)`, but currently only `div(phi,hU)` is defined.
 
 ## Proposed Solution
 
-**Modify `system/fvSchemes`** to add the missing divergence scheme entry. Add the line:
-```
-div(phiv,hU)    Gauss linear;
-```
+**Add the missing divergence scheme entry to `system/fvSchemes`**. Specifically, add:
 
-The `divSchemes` sub-dictionary should then contain:
 ```
 divSchemes
 {
     default         none;
-    div(phi,hU)     Gauss linear;
     div(phiv,hU)    Gauss linear;
 }
 ```
 
-This defines the convection scheme for the momentum equation using the velocity flux (`phiv`) with a second-order Gauss linear scheme, which is consistent with the user requirement for accuracy.
+This defines the convective term for the momentum equation using `phiv` (volumetric flux) with a second-order Gauss linear scheme, which is consistent with the user's requirement for a simple square bump simulation.
 
-## Additional Notes
+## Summary
 
-1. **Consistency check**: The `fvSchemes` file already has `div(phi,hU)` defined, which is likely used by the continuity equation. Both `phi` and `phiv` should be present since `shallowWaterFoam` uses `phiv` for the momentum equation and `phi` for the continuity equation.
-
-2. **No other files need modification**: This is purely a `fvSchemes` file issue. The boundary conditions, initial conditions, mesh, and other files are correct as they were in the previous attempts.
+- **File to modify**: `system/fvSchemes`
+- **Change**: In the `divSchemes` sub-dictionary, add the entry `div(phiv,hU) Gauss linear;` (keeping `default none;` as it already exists).
+- **No other files need modification** — this is purely a missing entry in the divergence schemes dictionary.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'system/fvSchemes', 'changes': 'Add div(phiv,hU) Gauss linear to the divSchemes sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'system/fvSchemes', 'changes': 'In divSchemes sub-dictionary, add div(phiv,hU) Gauss linear; entry after the default none entry'}]}
 Loop 3: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -236,12 +291,12 @@ Workflow completed successfully!
 Total calls: 26
 Failed calls: 0
 Total retries: 0
-Total prompt tokens: 48519
-Total completion tokens: 5690
-Total tokens: 54209
-Average prompt tokens per call: 1866.12
-Average completion tokens per call: 218.85
-Average tokens per call: 2084.96
+Total prompt tokens: 48818
+Total completion tokens: 5735
+Total tokens: 54553
+Average prompt tokens per call: 1877.62
+Average completion tokens per call: 220.58
+Average tokens per call: 2098.19
 
 </LLM Service Statistics>
 Namespace(openfoam_path='/global/cfs/cdirs/m4756/theseus/OpenFOAM-10', output='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/shallowWaterWithSquareBump/1', prompt_path='/pscratch/sd/p/peijingx/ablation/Dataset/Basic/shallowWaterWithSquareBump/1/usr_requirement.txt', custom_mesh_path=None, dataset_log_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/results/shallowWaterWithSquareBump/1/dataset.jsonl', case_id='Basic/shallowWaterWithSquareBump/1', model_config_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/model_config.json')

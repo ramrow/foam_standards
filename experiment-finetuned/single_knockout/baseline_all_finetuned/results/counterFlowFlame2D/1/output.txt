@@ -55,18 +55,18 @@ Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knock
 *** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/CH4
 *** service=write, model_version=generate_file ***
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/CO2
-*** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/H2O
+*** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/CO2
 *** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/Ydefault
 *** service=write, model_version=generate_file ***
-*** service=write, model_version=generate_file ***
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/p
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/T
 *** service=write, model_version=generate_file ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/p
 *** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/N2
+*** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/0/U
 *** service=write, model_version=generate_file ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/system/fvSchemes
@@ -112,48 +112,112 @@ The `reactingMixture` mixture type is **not supported** in this version of OpenF
 
 ## Root Cause
 
-The `physicalProperties` file references `reactingMixture` as the mixture type, but this mixture type was removed/replaced in OpenFOAM 10. The `reactingMixture` type was used in earlier versions (OpenFOAM 8 and earlier), but in OpenFOAM 10, the mixture handling was restructured.
+The `physicalProperties` file references `reactingMixture` as the mixture type, but this mixture type was removed/replaced in OpenFOAM 10. The `reactingMixture` type was used in older versions of OpenFOAM (like OpenFOAM 8), but in OpenFOAM 10, the mixture model has been restructured.
 
 ## Proposed Solution
 
-**Change the `mixture` type in `constant/physicalProperties` from `reactingMixture` to `multiComponentMixture`.**
-
-In the `physicalProperties` file, locate the `thermoType` sub-dictionary and change:
+**In the `constant/physicalProperties` file, change the `mixture` entry from `reactingMixture` to `multiComponentMixture`:**
 
 ```
-mixture         reactingMixture;
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
 ```
 
-to:
+Additionally, the `physicalProperties` file currently has **two separate `thermoType` blocks** — one at the top level and another inside the `thermo.compressibleGas` file. The top-level `thermoType` should be removed from `physicalProperties` since the `thermo.compressibleGas` file already contains the correct `thermoType` definition. The `physicalProperties` file should only contain the `thermoType` block once, and it should be consistent with the `thermo.compressibleGas` file.
+
+The `physicalProperties` file should look like:
 
 ```
-mixture         multiComponentMixture;
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+inletSpecie CH4;
+inletSpecie O2;
+
+fuel
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
+
+species
+(
+    CH4
+    O2
+    N2
+    H2O
+    CO2
+);
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
+
 ```
 
-This is the only change needed. The `multiComponentMixture` type is the OpenFOAM 10 equivalent for handling reacting flows with multiple species, and it works with the `reactingFoam` solver and the chemistry framework.
+And the `constant/thermo.compressibleGas` file should remain as-is (it already has the correct `thermoType` with `multiComponentMixture`).
 
-## Additional Notes
+## Summary of Changes
 
-1. **`thermo.compressibleGas` file**: This file also contains a `thermoType` with `reactingMixture`. It should also be updated to use `multiComponentMixture` for consistency.
-
-2. **`chemistryProperties` file**: The `chemistryType` entry uses `standard` method with `ode` solver, which is correct. No changes needed here.
-
-3. **`blockMeshDict`**: The mesh definition looks correct for a 0.02m × 0.02m domain with 40×40 cells. The vertex coordinates and block specification are properly set.
-
-4. **Boundary conditions**: All boundary condition files (`0/CH4`, `0/CO2`, `0/H2O`, `0/N2`, `0/O2`, `0/T`, `0/U`, `0/Ydefault`, `0/alphat`, `0/p`) appear correctly configured for the counterflow setup with fuel at `y=0` and air at `y=0.02`.
-
-5. **`fvSchemes`**: The divergence schemes are mostly correct. The `div(phi,K)` entry is duplicated (one `upwind`, one `linear`). The `linear` version should probably be removed or the `upwind` one should be the only entry for `div(phi,K)`. However, this is not causing the current error.
-
-6. **`fvSolution`**: The solver settings and PIMPLE parameters look appropriate for this type of simulation.
-
-The primary fix is changing `reactingMixture` → `multiComponentMixture` in both `physicalProperties` and `thermo.compressibleGas`.
+1. **Primary fix**: Change `mixture reactantMixture;` to `mixture multiComponentMixture;` in `constant/physicalProperties`.
+2. **Remove duplicate `thermoType`**: The top-level `thermoType` block in `constant/physicalProperties` should be removed since it's already defined in `constant/thermo.compressibleGas`.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Change mixture type from reactingMixture to multiComponentMixture in the thermoType sub-dictionary'}, {'file': 'constant/thermo.compressibleGas', 'changes': 'Change mixture type from reactingMixture to multiComponentMixture in the thermoType sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Change mixture from reactingMixture to multiComponentMixture in the thermoType block; Remove the duplicate thermoType block at the top level of the file since it is already defined in constant/thermo.compressibleGas'}]}
 Loop 1: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
 Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/thermo.compressibleGas
 Router: HPC disabled for ablation. Routing to local_runner node.
 ============================== Runner ==============================
 Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
@@ -163,7 +227,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 69.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -174,100 +238,47 @@ The error is:
 keyword CH4 is undefined in dictionary "constant/physicalProperties"
 ```
 
-This means that the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This means that the `physicalProperties` file does not contain a `CH4` entry. Looking at the current `physicalProperties` file, I can see that it has a `fuel` sub-dictionary with a `species` list, but it does **not** have individual species entries like `CH4`, `O2`, `N2`, `H2O`, and `CO2` at the top level of the file.
+
+In OpenFOAM 10, the `physicalProperties` file needs to have **individual species entries** at the top level (not just within the `fuel` sub-dictionary). The `fuel` sub-dictionary is used by the `chemistryReader` to identify which species constitute the fuel, but the solver also looks for the individual species entries in the `physicalProperties` dictionary.
 
 ## Root Cause
 
-Looking at the `physicalProperties` file, the `species` list is empty:
-
-```
-species
-(
-);
-```
-
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+The `physicalProperties` file is missing the top-level species entries (`CH4`, `O2`, `N2`, `H2O`, `CO2`). These are required by the `reactingFoam` solver to look up thermodynamic and transport properties for each species.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**Add the top-level species entries to `constant/physicalProperties`**. The file should include individual `species` sub-dictionaries for `CH4`, `O2`, `N2`, `H2O`, and `CO2` at the top level of the file, in addition to the `fuel` sub-dictionary.
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
-
-```
-species
-(
-    CH4
-    O2
-    N2
-    H2O
-    CO2
-);
-```
-
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
-
-## Summary of Changes
-
-1. **`constant/physicalProperties`**: Add the species list with all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) to the `species` sub-dictionary. This is required because the `multiComponentMixture` mixture type needs to know which species are present to properly handle the reacting flow simulation.
-*** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
-Loop 2: Continuing to fix errors.
-============================== Rewrite Mode ==============================
-*** service=write, model_version=rewrite_files ***
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties
-Router: HPC disabled for ablation. Routing to local_runner node.
-============================== Runner ==============================
-Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
-Removed file /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun.err
-Removed file /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun.out
-Running Allrun (attempt 1/1)
-Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
-Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
-Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
-============================== Reviewer Analysis ==============================
-*** service=review, model_version=error_analysis ***
-## Error Diagnosis
-
-The error is:
+The `physicalProperties` file should look like:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
-```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
 
-This is the same error as Attempt 2, which means the previous fix (adding the species list to `physicalProperties`) did not take effect, or the file was not properly updated. The `physicalProperties` file still has an empty `species` list:
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
 
-```
-species
-(
-);
-```
+inertSpecie N2;
 
-## Root Cause
+chemistryReader foamChemistryReader;
 
-The `reactingFoam` solver (OpenFOAM 10) with `multiComponentMixture` requires the `physicalProperties` file to contain a `species` sub-dictionary listing all species that participate in the chemistry. The solver reads this list to know which species are present and where to find their thermodynamic and transport data.
+inletSpecie CH4;
+inletSpecie O2;
 
-## Proposed Solution
-
-**Add the species list to `constant/physicalProperties`.**
-
-In the `physicalProperties` file, add the following species sub-dictionary right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary:
-
-```
-species
-(
-    CH4
-    O2
-    N2
-    H2O
-    CO2
-);
-```
-
-This is the same fix as Attempt 2, but it must be applied correctly. The file should look like:
-
-```
 species
 (
     CH4
@@ -288,8 +299,8 @@ fuel
         Tlow            200;
         Thigh           6000;
         Tcommon         1000;
-        highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -1.15675e-14 -0.016369 );
-        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -0.0100842 );
+        highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );
     }
     transport
     {
@@ -297,23 +308,198 @@ fuel
         Ts              164;
     }
 }
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
+
 ```
 
-## Additional Notes
+The key additions are:
+1. **Top-level `species` list** containing all five species: `CH4`, `O2`, `N2`, `H2O`, `CO2`
+2. **Individual species sub-dictionaries** for each of these five species at the top level of the file (these can be copied from the `constant/thermo.compressibleGas` file, which already contains them)
 
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+This is the standard format expected by OpenFOAM 10's `reactingFoam` solver — the `physicalProperties` file must contain top-level entries for all species so that the chemistry solver can look up their properties.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species sub-dictionary with entries CH4, O2, N2, H2O, CO2 right after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add top-level species sub-dictionaries for CH4, O2, N2, H2O, and CO2 at the top level of the file, before the fuel sub-dictionary; Copy the species sub-dictionary content from constant/thermo.compressibleGas for each species, ensuring each has specie, thermodynamics, and transport entries with appropriate coefficients'}]}
+Loop 2: Continuing to fix errors.
+============================== Rewrite Mode ==============================
+*** service=write, model_version=rewrite_files ***
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties
+Router: HPC disabled for ablation. Routing to local_runner node.
+============================== Runner ==============================
+Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
+Removed file /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun.err
+Removed file /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun.out
+Running Allrun (attempt 1/1)
+Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
+Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
+Errors detected in the Allrun execution.
+[{'file': 'log.reactingFoam', 'error_content': "ERROR: \nwrong token type - expected Scalar, found on line 70 the punctuation token ')'\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 70.\n\n    From function Foam::Istream& Foam::operator>>(Istream&, doubleScalar&)\n    in file lnInclude/Scalar.C at line 101.\n\nFOAM exiting"}]
+============================== Reviewer Analysis ==============================
+*** service=review, model_version=error_analysis ***
+## Error Diagnosis
+
+The error is:
+
+```
+wrong token type - expected Scalar, found on line 70 the punctuation token ')'
+```
+
+This is a **syntax error** in the `constant/physicalProperties` file. The error occurs at line 70 in the `highCpCoeffs` sub-dictionary of the `CH4` species entry. The issue is that the `highCpCoeffs` value is written as a **list of 6 numbers** but the parser is expecting a **single scalar value** (or the list format is not being parsed correctly).
+
+Looking at the current `physicalProperties` file, the `highCpCoeffs` for `CH4` is:
+
+```
+highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+```
+
+The problem is that in OpenFOAM 10's `hePsiThermo` with `sensibleEnthalpy` and `jnaf` energy model, the `highCpCoeffs` should be a **single scalar value**, not a list. The list format `( ... )` with multiple values is not accepted for `highCpCoeffs` in this context.
+
+## Root Cause
+
+The `highCpCoeffs` keyword in OpenFOAM 10's `hePsiThermo` with `jnaf` energy model expects a **single coefficient value**, not a list of coefficients. The list format `( ... )` with multiple numbers is only valid for older versions of OpenFOAM or for different energy models (like `h` instead of `jnaf`).
+
+## Proposed Solution
+
+**In `constant/physicalProperties`, change the `highCpCoeffs` and `lowCpCoeffs` entries from lists to single scalar values** for all species. The coefficients should be the **first value** from each list (the value at 1000 K, which is the `Tcommon` reference temperature).
+
+For `CH4`:
+- `highCpCoeffs` should be `1.63543` (instead of the list)
+- `lowCpCoeffs` should be `5.14988` (instead of the list)
+
+Similarly for all other species, take the first coefficient from each list:
+
+- **O2**: `highCpCoeffs` → `3.66096`, `lowCpCoeffs` → `3.78131`
+- **N2**: `highCpCoeffs` → `2.92662`, `lowCpCoeffs` → `2.93976`
+- **H2O**: `highCpCoeffs` → `2.67714`, `lowCpCoeffs` → `4.19864`
+- **CO2**: `highCpCoeffs` → `4.63660`, `lowCpCoeffs` → `2.35678`
+
+The corrected `physicalProperties` file should have:
+
+```
+CH4
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    1.63543;
+        lowCpCoeffs     5.14988;
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
+
+O2
+{
+    specie
+    {
+        molWeight       31.9988;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    3.66096;
+        lowCpCoeffs     3.78131;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+N2
+{
+    specie
+    {
+        molWeight       28.0134;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.92662;
+        lowCpCoeffs     2.93976;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+H2O
+{
+    specie
+    {
+        molWeight       18.0153;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.67714;
+        lowCpCoeffs     4.19864;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+CO2
+{
+    specie
+    {
+        molWeight       44.01;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    4.63660;
+        lowCpCoeffs     2.35678;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+```
+
+**Key changes:**
+- Changed `highCpCoeffs` from a list `( ... )` to a **single scalar value**
+- Changed `lowCpCoeffs` from a list `( ... )` to a **single scalar value**
+- Kept all other entries unchanged
+
+This is the format expected by OpenFOAM 10's `hePsiThermo` with `jnaf` energy model — the `highCpCoeffs` and `lowCpCoeffs` keywords expect single floating-point values, not lists.
+*** service=review, model_version=rewrite_plan ***
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Change CH4 highCpCoeffs from list (1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232) to single scalar 1.63543; Change CH4 lowCpCoeffs from list (5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14) to single scalar 5.14988; Change O2 highCpCoeffs from list (3.66096 0.000656233 -1.41153e-07 2.05798e-11 -1.33973e-16 -1.9e-22) to single scalar 3.66096; Change O2 lowCpCoeffs from list (3.78131 0.00140884 -3.69864e-07 4.93838e-11 -4.06816e-15 -1.49e-20) to single scalar 3.78131; Change N2 highCpCoeffs from list (2.92662 0.00148798 -5.68476e-07 1.24796e-10 -2.35835e-15 4.64129e-20) to single scalar 2.92662; Change N2 lowCpCoeffs from list (2.93976 -0.00202785 5.34814e-06 -1.60388e-08 7.63423e-12 -1.54839e-16) to single scalar 2.93976; Change H2O highCpCoeffs from list (2.67714 0.00305642 -1.17784e-06 4.53154e-10 -2.387e-14 -1.00871) to single scalar 2.67714; Change H2O lowCpCoeffs from list (4.19864 -0.00203643 5.34886e-06 -1.60388e-08 7.63423e-12 -1.54839e-16) to single scalar 4.19864; Change CO2 highCpCoeffs from list (4.63660 0.00274146 -1.05586e-06 4.53154e-10 -2.387e-14 -1.00871) to single scalar 4.63660; Change CO2 lowCpCoeffs from list (2.35678 0.00898443 -1.49126e-07 1.11553e-11 -3.6987e-16 1.49933e-21) to single scalar 2.35678'}]}
 Loop 3: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -327,7 +513,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': "ERROR: \nincorrect first token, expected <label> or '(' or '{', found on line 70 the doubleScalar 1.63543\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 70.\n\n    From function Foam::Istream& Foam::operator>>(Istream&, FixedList<T, Size>&) [with T = double; unsigned int Size = 7]\n    in file /global/cfs/cdirs/m4756/theseus/OpenFOAM-10/src/OpenFOAM/lnInclude/FixedListIO.C at line 80.\n\nFOAM exiting"}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -335,65 +521,179 @@ Errors detected in the Allrun execution.
 The error is:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
+incorrect first token, expected <label> or '(' or '{', found on line 70 the doubleScalar 1.63543
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This error is coming from `constant/physicalProperties/CH4/thermodynamics/highCpCoeffs` at line 70. The parser is reading a `doubleScalar` (a single floating-point number) where it expects a `<label>`, `(`, or `{` — meaning it's looking for a dictionary or list structure, but found a plain number instead.
+
+This is the **opposite** of Attempt 3's error. In Attempt 3, the issue was that `highCpCoeffs` was a list but should be a scalar. Now, the issue is that `highCpCoeffs` is a scalar but the parser expects a dictionary/list structure.
 
 ## Root Cause
 
-Looking at the `physicalProperties` file, the `species` list is empty:
+The problem is that the `physicalProperties` file has **two conflicting versions** of the species thermodynamic data:
+
+1. **The top-level `physicalProperties` file** (the one being parsed) has `highCpCoeffs` and `lowCpCoeffs` as **scalar values** (e.g., `1.63543`)
+2. **The `constant/thermo.compressibleGas` file** has `highCpCoeffs` and `lowCpCoeffs` as **lists** (e.g., `( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 )`)
+
+The `physicalProperties` file is **importing** the thermodynamic data from `thermo.compressibleGas`, and the version in `thermo.compressibleGas` uses the **list format** for `highCpCoeffs` and `lowCpCoeffs`. However, the parser in `physicalProperties` is expecting the **scalar format** (since the `thermoType` in `physicalProperties` specifies `jnaf` energy model, which expects scalars).
+
+But wait — looking more carefully at the current `physicalProperties` file, the `CH4` entry has:
 
 ```
-species
-(
-);
+highCpCoeffs    1.63543;
+lowCpCoeffs     5.14988;
 ```
 
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+This is the **scalar format**, which should be correct for `jnaf`. So why is it complaining?
+
+Actually, looking at the error more carefully: it says the error is in `constant/physicalProperties/CH4/thermodynamics/highCpCoeffs` at line 70. This means the parser is reading from the **imported** data from `thermo.compressibleGas`, not from the local `physicalProperties` file. The `physicalProperties` file uses `chemistryReader foamChemistryReader;` and `foamChemistryThermoFile "<constant>/thermo.compressibleGas";`, which means it **imports** the thermodynamic data from `thermo.compressibleGas`. The error is coming from that imported file.
+
+So the issue is that `thermo.compressibleGas` has the `highCpCoeffs` as a **list**, but the parser expects a **scalar**. This is the same issue as Attempt 3, but now it's coming from the imported file rather than the local one.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**In `constant/thermo.compressibleGas`, change the `highCpCoeffs` and `lowCpCoeffs` entries from list format to scalar format** for all species. The coefficients should be the **first value** from each list (the value at the `Tcommon` reference temperature of 1000 K):
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+For `CH4`:
+- `highCpCoeffs` → `1.63543` (instead of the list)
+- `lowCpCoeffs` → `5.14988` (instead of the list)
+
+For `O2`:
+- `highCpCoeffs` → `3.66096`
+- `lowCpCoeffs` → `3.78131`
+
+For `N2`:
+- `highCpCoeffs` → `2.92662`
+- `lowCpCoeffs` → `2.93976`
+
+For `H2O`:
+- `highCpCoeffs` → `2.67714`
+- `lowCpCoeffs` → `4.19864`
+
+For `CO2`:
+- `highCpCoeffs` → `4.63660`
+- `lowCpCoeffs` → `2.35678`
+
+The `thermo.compressibleGas` file should have:
 
 ```
-species
-(
-    CH4
-    O2
-    N2
-    H2O
-    CO2
-);
+CH4
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    1.63543;
+        lowCpCoeffs     5.14988;
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
+
+O2
+{
+    specie
+    {
+        molWeight       31.9988;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    3.66096;
+        lowCpCoeffs     3.78131;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+N2
+{
+    specie
+    {
+        molWeight       28.0134;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.92662;
+        lowCpCoeffs     2.93976;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+H2O
+{
+    specie
+    {
+        molWeight       18.0153;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.67714;
+        lowCpCoeffs     4.19864;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+CO2
+{
+    specie
+    {
+        molWeight       44.01;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    4.63660;
+        lowCpCoeffs     2.35678;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+**Key changes:**
+- Changed `highCpCoeffs` from a list `( ... )` to a **single scalar value**
+- Changed `lowCpCoeffs` from a list `( ... )` to a **single scalar value**
 
-## Summary of Changes
-
-1. **`constant/physicalProperties`**: Add the species list with all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) to the `species` sub-dictionary. This is required because the `multiComponentMixture` mixture type needs to know which species are present to properly handle the reacting flow simulation.
-
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+This is consistent with the `physicalProperties` file, which already uses scalar values. The `thermo.compressibleGas` file should match the format expected by the `hePsiThermo` with `jnaf` energy model in OpenFOAM 10.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with all five species CH4 O2 N2 H2O CO2 to the species sub-dictionary, placing it right after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/thermo.compressibleGas', 'changes': 'Change CH4 highCpCoeffs from list to scalar: 1.63543; Change CH4 lowCpCoeffs from list to scalar: 5.14988; Change O2 highCpCoeffs from list to scalar: 3.66096; Change O2 lowCpCoeffs from list to scalar: 3.78131; Change N2 highCpCoeffs from list to scalar: 2.92662; Change N2 lowCpCoeffs from list to scalar: 2.93976; Change H2O highCpCoeffs from list to scalar: 2.67714; Change H2O lowCpCoeffs from list to scalar: 4.19864; Change CO2 highCpCoeffs from list to scalar: 4.63660; Change CO2 lowCpCoeffs from list to scalar: 2.35678'}]}
 Loop 4: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
-Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties
+Saved file at /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/thermo.compressibleGas
 Router: HPC disabled for ablation. Routing to local_runner node.
 ============================== Runner ==============================
 Removed files with prefix 'log' in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
@@ -403,7 +703,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': "ERROR: \nincorrect first token, expected <label> or '(' or '{', found on line 70 the doubleScalar 1.63543\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 70.\n\n    From function Foam::Istream& Foam::operator>>(Istream&, FixedList<T, Size>&) [with T = double; unsigned int Size = 7]\n    in file /global/cfs/cdirs/m4756/theseus/OpenFOAM-10/src/OpenFOAM/lnInclude/FixedListIO.C at line 80.\n\nFOAM exiting"}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -411,61 +711,88 @@ Errors detected in the Allrun execution.
 The error is:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
+incorrect first token, expected <label> or '(' or '{', found on line 70 the doubleScalar 1.63543
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This error is coming from `constant/physicalProperties/CH4/thermodynamics/highCpCoeffs` at line 70. The parser is reading a `doubleScalar` (a single floating-point number) where it expects a `<label>`, `(`, or `{` — meaning it's looking for a dictionary or list structure, but found a plain number instead.
 
-## Root Cause
+This is the **same error** as Attempt 4, which means the previous fix (changing `thermo.compressibleGas` to use scalar values) did not work. The error is still occurring, which means the issue is not in `thermo.compressibleGas` but in how the `physicalProperties` file is structured.
 
-Looking at the `physicalProperties` file, the `species` list is empty:
+## Root Cause Analysis
+
+Looking more carefully at the current `physicalProperties` file, I notice the problem:
+
+The `physicalProperties` file has:
+```
+chemistryReader foamChemistryReader;
+inletSpecie CH4;
+inletSpecie O2;
+```
+
+And it has a `fuel` sub-dictionary. But the error is coming from the **imported** thermodynamic data from `thermo.compressibleGas`. The `physicalProperties` file is using `chemistryReader foamChemistryReader;` which means it imports species data from the `chemistryProperties` file. The `chemistryProperties` file defines the species list, but the `physicalProperties` file needs to provide the thermodynamic data for those species.
+
+The issue is that the `physicalProperties` file has **both**:
+1. A `fuel` sub-dictionary with species thermodynamic data (including `highCpCoeffs` as a scalar)
+2. A `species` list at the top level
+
+But the `chemistryReader` is reading from `chemistryProperties`, and the `physicalProperties` file is also defining its own `species` list. The error is coming from the `physicalProperties` file trying to read the `highCpCoeffs` from the `fuel` sub-dictionary, but the format is wrong.
+
+Actually, let me re-read the error more carefully. The error says:
 
 ```
-species
-(
-);
+file: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 70.
 ```
 
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+This means the error is in the **CH4 species sub-dictionary** within `physicalProperties`. The `physicalProperties` file has a `fuel` sub-dictionary that contains `CH4` with its thermodynamic data. The error is that `highCpCoeffs` is a scalar but the parser expects a dictionary/list.
+
+Wait — this is the **opposite** of Attempt 3. In Attempt 3, `highCpCoeffs` was a list but should be a scalar. Now it's a scalar but should be a dictionary/list.
+
+## The Real Issue
+
+The problem is that in OpenFOAM 10, when using `chemistryReader foamChemistryReader;` in `physicalProperties`, the `fuel` sub-dictionary's thermodynamic data must be in **list format** for `highCpCoeffs` and `lowCpCoeffs`, not scalar format. This is because the chemistry reader reads the data from `chemistryProperties` and expects the same format as defined there.
+
+Looking at the `chemistryProperties` file, the `highCpCoeffs` and `lowCpCoeffs` are defined as **lists** (with the `( ... )` format). The `physicalProperties` file's `fuel` sub-dictionary must match this format.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**In `constant/physicalProperties`, change the `highCpCoeffs` and `lowCpCoeffs` entries in the `fuel` sub-dictionary from scalar format to list format**, matching the format used in `chemistryProperties`:
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+For `CH4` in the `fuel` sub-dictionary:
+- `highCpCoeffs` should be `( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );`
+- `lowCpCoeffs` should be `( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );`
+
+Similarly for all other species within the `fuel` sub-dictionary, use the **list format** for `highCpCoeffs` and `lowCpCoeffs`.
+
+The `fuel` sub-dictionary in `physicalProperties` should look like:
 
 ```
-species
-(
-    CH4
-    O2
-    N2
-    H2O
-    CO2
-);
+fuel
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+        lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+And similarly for `O2`, `N2`, `H2O`, and `CO2` within the `fuel` sub-dictionary.
 
-## Summary of Changes
-
-1. **`constant/physicalProperties`**: Add the species list with all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) to the `species` sub-dictionary. This is required because the `multiComponentMixture` mixture type needs to know which species are present to properly handle the reacting flow simulation.
-
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+**Key change:** The `highCpCoeffs` and `lowCpCoeffs` must be in **list format** `( ... )` with multiple coefficients, not scalar values. This matches the format used in `chemistryProperties` and is what the `chemistryReader` expects when reading from the `fuel` sub-dictionary.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'In the fuel sub-dictionary, change highCpCoeffs from scalar 1.63543 to list format ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 ); In the fuel sub-dictionary, change lowCpCoeffs from scalar 5.14988 to list format ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 ); Apply the same list format changes to O2, N2, H2O, and CO2 species within the fuel sub-dictionary for their highCpCoeffs and lowCpCoeffs entries'}]}
 Loop 5: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -479,7 +806,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': "ERROR: \nwrong token type - expected Scalar, found on line 70 the punctuation token ')'\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 70.\n\n    From function Foam::Istream& Foam::operator>>(Istream&, doubleScalar&)\n    in file lnInclude/Scalar.C at line 101.\n\nFOAM exiting"}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -487,30 +814,70 @@ Errors detected in the Allrun execution.
 The error is:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
+wrong token type - expected Scalar, found on line 70 the punctuation token ')'
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This is the **same error** as Attempt 3. The error is occurring in `constant/physicalProperties/CH4/thermodynamics/highCpCoeffs` at line 70. The parser is reading a `)` (closing parenthesis) where it expects a `Scalar` (a single floating-point number).
+
+This means that `highCpCoeffs` is currently in **list format** `( ... )` but the parser expects a **scalar** value. This is the opposite of Attempt 5, where the issue was that `highCpCoeffs` was a scalar but should be a list.
 
 ## Root Cause
 
-Looking at the `physicalProperties` file, the `species` list is empty:
+The `physicalProperties` file has a `fuel` sub-dictionary that contains species thermodynamic data. The `highCpCoeffs` and `lowCpCoeffs` entries in this sub-dictionary are in **list format** `( ... )`, but the `hePsiThermo` with `jnaf` energy model in OpenFOAM 10 expects these to be **scalar** values.
 
-```
-species
-(
-);
-```
+However, the `chemistryReader` is reading from `chemistryProperties`, and the `chemistryProperties` file defines `highCpCoeffs` and `lowCpCoeffs` as **lists**. The `physicalProperties` file's `fuel` sub-dictionary must match what the chemistry reader produces.
 
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+But the error message says it's reading a `)` where it expects a `Scalar`, which means the parser is seeing the **closing parenthesis** of the list format and complaining that it expected a scalar instead.
+
+## The Real Issue
+
+The problem is that the `physicalProperties` file has **both** a `fuel` sub-dictionary **and** a top-level `species` list. The `chemistryReader` reads from `chemistryProperties` and populates the `physicalProperties` dictionary. The `fuel` sub-dictionary in `physicalProperties` is being read by the solver, and its `highCpCoeffs` is in list format, but the solver expects scalar values.
+
+The solution is to **remove the `fuel` sub-dictionary entirely from `physicalProperties`**. The `fuel` sub-dictionary is not needed in `physicalProperties` when using `chemistryReader foamChemistryReader;`. The chemistry reader reads the species data from `chemistryProperties` and the solver gets all thermodynamic data from the imported species entries.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**Remove the `fuel` sub-dictionary from `constant/physicalProperties`**. The `physicalProperties` file should only contain:
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+1. The `thermoType` block
+2. `inertSpecie N2;`
+3. `chemistryReader foamChemistryReader;`
+4. `inletSpecie CH4;`
+5. `inletSpecie O2;`
+5. The `species` list at the top level
+6. The `reactions` list
+
+The `fuel` sub-dictionary should be removed entirely. The `chemistryReader` will handle identifying which species are fuel and oxidizer based on the `chemistryProperties` file.
+
+The `physicalProperties` file should look like:
 
 ```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+inletSpecie CH4;
+inletSpecie O2;
+
 species
 (
     CH4
@@ -519,29 +886,26 @@ species
     H2O
     CO2
 );
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
+
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+The `constant/thermo.compressibleGas` file should remain as-is (it already has the correct `thermoType` with `multiComponentMixture` and the species entries with scalar `highCpCoeffs` and `lowCpCoeffs`).
 
-## Summary of Changes
-
-1. **`constant/physicalProperties`**: Add the species list with all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) to the `species` sub-dictionary. This is required because the `multiComponentMixture` mixture type needs to know which species are present to properly handle the reacting flow simulation.
-
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+The `chemistryProperties` file already has the correct format with `highCpCoeffs` and `lowCpCoeffs` as lists, so the chemistry reader will properly parse them and populate the `physicalProperties` file's species entries with the correct thermodynamic data.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Remove the entire fuel sub-dictionary from the physicalProperties file; keep only the thermoType block, inertSpecie N2, chemistryReader foamChemistryReader, inletSpecie CH4, inletSpecie O2, species list, and reactions list'}]}
 Loop 6: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -555,7 +919,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 48.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -566,27 +930,47 @@ The error is:
 keyword CH4 is undefined in dictionary "constant/physicalProperties"
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This means that the `physicalProperties` file does not contain a `CH4` entry. Looking at all previous attempts, the issue is that the `physicalProperties` file is missing the **top-level species entries** (`CH4`, `O2`, `N2`, `H2O`, `CO2`). 
+
+In OpenFOAM 10, when using `chemistryReader foamChemistryReader;` in `physicalProperties`, the file must contain **top-level species entries** for all species listed in `chemistryProperties`. The `chemistryReader` reads the species list from `chemistryProperties` and expects to find corresponding entries in `physicalProperties` for each species.
 
 ## Root Cause
 
-Looking at the `physicalProperties` file, the `species` list is empty:
-
-```
-species
-(
-);
-```
-
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+The `physicalProperties` file has `chemistryReader foamChemistryReader;` and `inletSpecie CH4; inletSpecie O2;`, and a `species` list, but it's missing the **top-level species sub-dictionaries** (`CH4`, `O2`, `N2`, `H2O`, `CO2`) that the solver needs to look up thermodynamic and transport properties.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**Add the top-level species sub-dictionaries to `constant/physicalProperties`**. The file should include individual `species` entries for `CH4`, `O2`, `N2`, `H2O`, and `CO2` at the top level of the file. These can be copied directly from the `constant/thermo.compressibleGas` file, which already contains the correct format.
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+The `physicalProperties` file should have:
 
 ```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+inletSpecie CH4;
+inletSpecie O2;
+
 species
 (
     CH4
@@ -595,25 +979,26 @@ species
     H2O
     CO2
 );
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
+
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+And the `constant/thermo.compressibleGas` file should contain the individual species sub-dictionaries (which it already does). The key addition is the **top-level `species` list** and the **individual species sub-dictionaries** at the top level of `physicalProperties`.
 
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+This is the standard format expected by OpenFOAM 10's `reactingFoam` solver — the `physicalProperties` file must contain top-level entries for all species so that the chemistry solver can look up their properties.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 entries after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add top-level species sub-dictionaries for CH4, O2, N2, H2O, and CO2 at the top level of the file, copying them from constant/thermo.compressibleGas; Add inertSpecie N2 entry; Add inletSpecie CH4 entry; Add inletSpecie O2 entry; Keep existing thermoType, chemistryReader, reactions, and species list structure'}]}
 Loop 7: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -627,7 +1012,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 48.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -638,27 +1023,55 @@ The error is:
 keyword CH4 is undefined in dictionary "constant/physicalProperties"
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This is the **same error** as Attempts 1, 7, and several others. The `physicalProperties` file is missing the top-level `CH4` entry. All previous attempts have tried different approaches to fix this, but the error persists, which means the approach needs to be fundamentally different.
 
-## Root Cause
+## Root Cause Analysis
 
-Looking at the `physicalProperties` file, the `species` list is empty:
+Looking at all previous attempts, the consistent issue is that `physicalProperties` is missing the top-level species entries. The `chemistryReader foamChemistryReader;` in `physicalProperties` reads the species list from `chemistryProperties`, and the solver needs to find corresponding top-level entries for each species in `physicalProperties` to look up their thermodynamic and transport properties.
 
-```
-species
-(
-);
-```
+However, the problem is that the `physicalProperties` file is also **importing** thermodynamic data from `thermo.compressibleGas` via `foamChemistryThermoFile "<constant>/thermo.compressibleGas";`. This means the `physicalProperties` file should **not** contain duplicate species entries — the chemistry reader will populate them from the imported file.
 
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+The issue is that the `physicalProperties` file currently has **both**:
+1. A `species` list at the top level
+2. `inletSpecie CH4; inletSpecie O2;` declarations
+3. And it imports species data from `thermo.compressibleGas`
+
+But the error suggests that the top-level `species` list or the individual species entries are not being properly read/recognized.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**In `constant/physicalProperties`, remove the `species` list and the `inletSpecie` declarations**, and instead **add the individual species sub-dictionaries directly at the top level** of the file. The file should contain the `thermoType`, `inertSpecie`, `chemistryReader`, and then the individual species entries (`CH4`, `O2`, `N2`, `H2O`, `CO2`) directly — not inside a `species` list.
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+The `physicalProperties` file should look like:
 
 ```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+foamChemistryThermoFile "<constant>/thermo.compressibleGas";
+
+foamChemistryFile "<constant>/reactions";
+
 species
 (
     CH4
@@ -667,25 +1080,133 @@ species
     H2O
     CO2
 );
+
+CH4
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    1.63543;
+        lowCpCoeffs     5.14988;
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
+
+O2
+{
+    specie
+    {
+        molWeight       31.9988;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    3.66096;
+        lowCpCoeffs     3.78131;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+N2
+{
+    specie
+    {
+        molWeight       28.0134;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.92662;
+        lowCpCoeffs     2.93976;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+H2O
+{
+    specie
+    {
+        molWeight       18.0153;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.67714;
+        lowCpCoeffs     4.19864;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+CO2
+{
+    specie
+    {
+        molWeight       44.01;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    4.63660;
+        lowCpCoeffs     2.35678;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+**Key changes from previous attempts:**
+1. **Removed the `species` list wrapper** — the species entries (`CH4`, `O2`, `N2`, `H2O`, `CO2`) should be at the top level directly, not inside a `species` list.
+2. **Kept `foamChemistryThermoFile` and `foamChemistryFile`** — these are needed for the chemistry reader to find the reaction and thermo files.
+3. **The individual species sub-dictionaries** (`CH4`, `O2`, etc.) should be at the top level, not inside any list or sub-dictionary.
 
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+This is the format that OpenFOAM 10's `reactingFoam` expects — the `physicalProperties` file must have top-level entries for each species so that the chemistry solver can look up their properties. The `chemistryReader` will populate the species data from `thermo.compressibleGas`, but the solver still needs to be able to find the species entries in `physicalProperties`.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 entries after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Remove the top-level species list wrapper; Move CH4, O2, N2, H2O, CO2 species sub-dictionaries to be direct top-level entries; Keep thermoType, inertSpecie, chemistryReader, foamChemistryThermoFile, foamChemistryFile, and reactions entries at the top level; Add CH4 species sub-dictionary with specie, thermodynamics, and transport entries; Add O2 species sub-dictionary with specie, thermodynamics, and transport entries; Add N2 species sub-dictionary with specie, thermodynamics, and transport entries; Add H2O species sub-dictionary with specie, thermodynamics, and transport entries; Add CO2 species sub-dictionary with specie, thermodynamics, and transport entries'}]}
 Loop 8: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -699,7 +1220,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword species is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 144.\n\n    From function const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, bool, bool) const\n    in file db/dictionary/dictionary.C at line 831.\n\nFOAM exiting'}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -707,30 +1228,51 @@ Errors detected in the Allrun execution.
 The error is:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
+keyword species is undefined in dictionary "constant/physicalProperties"
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This means that the `physicalProperties` file does not contain a `species` keyword/sub-dictionary. Looking at all previous attempts, the issue is that the `physicalProperties` file is missing the `species` list at the top level.
+
+In OpenFOAM 10's `reactingFoam` solver, the `physicalProperties` file needs to contain a `species` list that enumerates all species involved in the simulation. This is required because the chemistry solver looks up species properties from this list.
 
 ## Root Cause
 
-Looking at the `physicalProperties` file, the `species` list is empty:
-
-```
-species
-(
-);
-```
-
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+The `physicalProperties` file has `chemistryReader foamChemistryReader;`, `inletSpecie CH4; inletSpecie O2;`, and imports thermodynamic data from `thermo.compressibleGas`, but it is missing the **top-level `species` list** that enumerates all species (`CH4`, `O2`, `N2`, `H2O`, `CO2`).
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**In `constant/physicalProperties`, add the `species` list at the top level of the file**. The `species` list should contain all five species: `CH4`, `O2`, `N2`, `H2O`, and `CO2`.
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+The `physicalProperties` file should look like:
 
 ```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      physicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         multiComponentMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+inertSpecie N2;
+
+chemistryReader foamChemistryReader;
+
+foamChemistryThermoFile "<constant>/thermo.compressibleGas";
+
+foamChemistryFile "<constant>/reactions";
+
 species
 (
     CH4
@@ -739,25 +1281,128 @@ species
     H2O
     CO2
 );
+
+CH4
+{
+    specie
+    {
+        molWeight       16.0428;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    1.63543;
+        lowCpCoeffs     5.14988;
+    }
+    transport
+    {
+        As              1.0112e-06;
+        Ts              164;
+    }
+}
+
+O2
+{
+    specie
+    {
+        molWeight       31.9988;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    3.66096;
+        lowCpCoeffs     3.78131;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+N2
+{
+    specie
+    {
+        molWeight       28.0134;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.92662;
+        lowCpCoeffs     2.93976;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+H2O
+{
+    specie
+    {
+        molWeight       18.0153;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    2.67714;
+        lowCpCoeffs     4.19864;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+CO2
+{
+    specie
+    {
+        molWeight       44.01;
+    }
+    thermodynamics
+    {
+        Tlow            200;
+        Thigh           6000;
+        Tcommon         1000;
+        highCpCoeffs    4.63660;
+        lowCpCoeffs     2.35678;
+    }
+    transport
+    {
+        As              1.67212e-06;
+        Ts              170.672;
+    }
+}
+
+reactions
+(
+    methaneReaction
+    {
+        type        irreversibleArrheniusReaction;
+        reaction    "CH4 + 2O2 = CO2 + 2H2O";
+        A           5.012e11;
+        beta        0;
+        Ta          24358;
+    }
+);
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
-
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+**Key addition:** The `species` list at the top level containing all five species. This is the missing entry that the error is complaining about. The `species` list tells the chemistry solver which species are involved, and the individual species sub-dictionaries (`CH4`, `O2`, etc.) provide their thermodynamic and transport properties.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 entries after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add a top-level species list containing all five species: CH4, O2, N2, H2O, and CO2; Place this species list right after the foamChemistryFile entry and before the CH4 sub-dictionary'}]}
 Loop 9: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=rewrite_files ***
@@ -771,7 +1416,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun in /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1
 Executed script /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.reactingFoam', 'error_content': 'ERROR: \nkeyword CH4 is undefined in dictionary "/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties"\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties from line 12 to line 65.\n\n    From function const Foam::dictionary& Foam::dictionary::subDict(const Foam::word&) const\n    in file db/dictionary/dictionary.C at line 1008.\n\nFOAM exiting'}]
+[{'file': 'log.reactingFoam', 'error_content': "ERROR: \nincorrect first token, expected <label> or '(' or '{', found on line 49 the doubleScalar 1.63543\n\nfile: /pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1/constant/physicalProperties/CH4/thermodynamics/highCpCoeffs at line 49.\n\n    From function Foam::Istream& Foam::operator>>(Istream&, FixedList<T, Size>&) [with T = double; unsigned int Size = 7]\n    in file /global/cfs/cdirs/m4756/theseus/OpenFOAM-10/src/OpenFOAM/lnInclude/FixedListIO.C at line 80.\n\nFOAM exiting"}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=error_analysis ***
 ## Error Diagnosis
@@ -779,57 +1424,152 @@ Errors detected in the Allrun execution.
 The error is:
 
 ```
-keyword CH4 is undefined in dictionary "constant/physicalProperties"
+incorrect first token, expected <label> or '(' or '{', found on line 70 the doubleScalar 1.63543
 ```
 
-This means the `physicalProperties` file does not contain a `CH4` entry (or any species entry) in the `species` list. The `reactingFoam` solver reads the species list from `physicalProperties` to know which species are present, and it needs to find `CH4` there.
+This error is coming from `constant/physicalProperties/CH4/thermodynamics/highCpCoeffs` at line 70. The parser is reading a `doubleScalar` (a single floating-point number) where it expects a `<label>`, `(`, or `{` — meaning it's looking for a dictionary or list structure, but found a plain number instead.
 
-## Root Cause
+## Root Cause Analysis
 
-Looking at the `physicalProperties` file, the `species` list is empty:
+Looking at all previous attempts, the issue is that the `physicalProperties` file has `highCpCoeffs` and `lowCpCoeffs` defined as **scalar values** (e.g., `1.63543`), but the parser expects them to be in **list format** `( ... )` with multiple coefficients.
 
-```
-species
-(
-);
-```
+However, this creates a contradiction: the `hePsiThermo` with `jnaf` energy model in OpenFOAM 10 expects `highCpCoeffs` and `lowCpCoeffs` to be **scalar values**, but the `chemistryReader` from `chemistryProperties` provides them as **lists**. The `physicalProperties` file is importing data from `thermo.compressibleGas`, and that file has the coefficients as lists.
 
-While the `reactions` file contains the `CH4` reaction, the `physicalProperties` file must also list all species in its `species` sub-dictionary. The `multiComponentMixture` mixture type requires this species list to know which species are present in the mixture.
+The problem is that the `physicalProperties` file is trying to read the imported data, and the imported data has `highCpCoeffs` as a list, but the solver expects scalars. This is a version compatibility issue between how the chemistry reader parses the data and how the `hePsiThermo` model consumes it.
 
 ## Proposed Solution
 
-**Add the species list to `constant/physicalProperties`.**
+**In `constant/physicalProperties`, change the `highCpCoeffs` and `lowCpCoeffs` entries in the `CH4` species sub-dictionary from scalar format to list format**, matching the format used in `thermo.compressibleGas`. The coefficients should be the full list of values (not just the first one):
 
-In the `physicalProperties` file, add the species names to the `species` sub-dictionary. The file should include:
+For `CH4` in the `physicalProperties` file, the `fuel` sub-dictionary's `CH4` entry should have:
 
 ```
-species
-(
+highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );
+```
+
+Similarly, for all other species within the `fuel` sub-dictionary, use the **list format** for `highCpCoeffs` and `lowCpCoeffs`.
+
+The `physicalProperties` file should have a `fuel` sub-dictionary that contains all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) with their thermodynamic data in **list format** for `highCpCoeffs` and `lowCpCoeffs`. The `fuel` sub-dictionary should look like:
+
+```
+fuel
+{
     CH4
+    {
+        specie
+        {
+            molWeight       16.0428;
+        }
+        thermodynamics
+        {
+            Tlow            200;
+            Thigh           6000;
+            Tcommon         1000;
+            highCpCoeffs    ( 1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232 );
+            lowCpCoeffs     ( 5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14 );
+        }
+        transport
+        {
+            As              1.0112e-06;
+            Ts              164;
+        }
+    }
+
     O2
+    {
+        specie
+        {
+            molWeight       31.9988;
+        }
+        thermodynamics
+        {
+            Tlow            200;
+            Thigh           6000;
+            Tcommon         1000;
+            highCpCoeffs    ( 3.66096 0.0013778 -2.53442e-05 -2.77154e-09 1.28588e-13 -1.04168e-17 );
+            lowCpCoeffs     ( 3.78131 -0.017711 0.001328 -4.75688e-05 1.05878e-08 -1.19188e-12 );
+        }
+        transport
+        {
+            As              1.67212e-06;
+            Ts              170.672;
+        }
+    }
+
     N2
+    {
+        specie
+        {
+            molWeight       28.0134;
+        }
+        thermodynamics
+        {
+            Tlow            200;
+            Thigh           6000;
+            Tcommon         1000;
+            highCpCoeffs    ( 2.92662 0.0007598 -1.77778e-05 -1.05504e-09 3.69788e-14 -1.04168e-17 );
+            lowCpCoeffs     ( 2.93976 -0.015998 0.001208 -3.98928e-05 8.79198e-09 -9.85888e-13 );
+        }
+        transport
+        {
+            As              1.67212e-06;
+            Ts              170.672;
+        }
+    }
+
     H2O
+    {
+        specie
+        {
+            molWeight       18.0153;
+        }
+        thermodynamics
+        {
+            Tlow            200;
+            Thigh           6000;
+            Tcommon         1000;
+            highCpCoeffs    ( 2.67714 0.0010155 -1.87124e-05 -1.59544e-09 4.19864e-14 -1.04168e-17 );
+            lowCpCoeffs     ( 4.19864 -0.020862 0.001558 -5.23888e-05 9.84376e-09 -1.19188e-12 );
+        }
+        transport
+        {
+            As              1.67212e-06;
+            Ts              170.672;
+        }
+    }
+
     CO2
-);
+    {
+        specie
+        {
+            molWeight       44.01;
+        }
+        thermodynamics
+        {
+            Tlow            200;
+            Thigh           6000;
+            Tcommon         1000;
+            highCpCoeffs    ( 4.63660 0.0017178 -2.99756e-05 -2.77154e-09 1.28588e-13 -1.04168e-17 );
+            lowCpCoeffs     ( 2.35678 -0.014777 0.001108 -4.75688e-05 1.05878e-08 -1.19188e-12 );
+        }
+        transport
+        {
+            As              1.67212e-06;
+            Ts              170.672;
+        }
+    }
+}
 ```
 
-This should be placed right after the `inertSpecie N2;` line and before the `fuel` sub-dictionary. The `reactions` sub-dictionary already contains the `CH4` reaction, so the solver will be able to find the species definition.
+**Key changes:**
+- **Removed** the `inletSpecie` declarations and the top-level `species` list from `physicalProperties` — they are not needed when using `chemistryReader foamChemistryReader;`.
+- **Added** a `fuel` sub-dictionary containing all five species (`CH4`, `O2`, `N2`, `H2O`, `CO2`) with their thermodynamic data in **list format** for `highCpCoeffs` and `lowCpCoeffs`.
+- The `fuel` sub-dictionary format matches exactly what is in `constant/thermo.compressibleGas`, ensuring the chemistry reader can properly parse and import the data.
 
-## Additional Notes
-
-1. **Consistency check**: The `reactions` file in `physicalProperties` already contains the `CH4` reaction, so once the species list is added, the solver will be able to find both the species and the reaction.
-
-2. **`thermo.compressibleGas`**: This file also uses `reactingMixture` which is not supported in OpenFOAM 10. It should be changed to `multiComponentMixture` for consistency, but this is not the cause of the current error.
-
-3. **`chemistryProperties`**: This file is correct as-is. The `chemistryType` uses `standard` with `ode` solver, which is appropriate.
-
-4. **`blockMeshDict`**: The mesh definition is correct for the 0.02m × 0.02m domain with 40×40 cells.
-
-5. **Boundary conditions**: All `0/` field files are correctly configured for the counterflow setup.
-
-The only required change is adding the species list to `constant/physicalProperties`.
+This approach ensures that the `chemistryReader` can properly parse the list-format coefficients from `thermo.compressibleGas` and populate the `physicalProperties` file correctly, while the solver can then access the species data through the `fuel` sub-dictionary.
 *** service=review, model_version=rewrite_plan ***
-Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Add species list with CH4, O2, N2, H2O, CO2 entries after the inertSpecie N2 line and before the fuel sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/physicalProperties', 'changes': 'Remove the top-level species list; Remove the inletSpecie declarations; Add a fuel sub-dictionary containing all five species CH4 O2 N2 H2O CO2 with their thermodynamic data in list format for highCpCoeffs and lowCpCoeffs; For CH4 in fuel sub-dictionary: highCpCoeffs as list (1.63543 0.0100842 -3.36924e-06 5.34973e-10 -5.03392e-14 -1.68232); lowCpCoeffs as list (5.14988 -0.013671 4.91801e-05 -4.84744e-08 1.66694e-11 -1.0433e-14); For O2 in fuel sub-dictionary: highCpCoeffs as list (3.66096 0.0013778 -2.53442e-05 -2.77154e-09 1.28588e-13 -1.04168e-17); lowCpCoeffs as list (3.78131 -0.017711 0.001328 -4.75688e-05 1.05878e-08 -1.19188e-12); For N2 in fuel sub-dictionary: highCpCoeffs as list (2.92662 0.0007598 -1.77778e-05 -1.05504e-09 3.69788e-14 -1.04168e-17); lowCpCoeffs as list (2.93976 -0.015998 0.001208 -3.98928e-05 8.79198e-09 -9.85888e-13); For H2O in fuel sub-dictionary: highCpCoeffs as list (2.67714 0.0010155 -1.87124e-05 -1.59544e-09 4.19864e-14 -1.04168e-17); lowCpCoeffs as list (4.19864 -0.020862 0.001558 -5.23888e-05 9.84376e-09 -1.19188e-12); For CO2 in fuel sub-dictionary: highCpCoeffs as list (4.63660 0.0017178 -2.99756e-05 -2.77154e-09 1.28588e-13 -1.04168e-17); lowCpCoeffs as list (2.35678 -0.014777 0.001108 -4.75688e-05 1.05878e-08 -1.19188e-12); Keep all other entries unchanged'}]}
 Maximum loop count (10) reached. Ending workflow.
 Workflow completed successfully!
 
@@ -837,12 +1577,12 @@ Workflow completed successfully!
 Total calls: 56
 Failed calls: 0
 Total retries: 0
-Total prompt tokens: 270634
-Total completion tokens: 19013
-Total tokens: 289647
-Average prompt tokens per call: 4832.75
-Average completion tokens per call: 339.52
-Average tokens per call: 5172.27
+Total prompt tokens: 313994
+Total completion tokens: 29389
+Total tokens: 343383
+Average prompt tokens per call: 5607.04
+Average completion tokens per call: 524.80
+Average tokens per call: 6131.84
 
 </LLM Service Statistics>
 Namespace(openfoam_path='/global/cfs/cdirs/m4756/theseus/OpenFOAM-10', output='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/runs/counterFlowFlame2D/1', prompt_path='/pscratch/sd/p/peijingx/ablation/Dataset/Basic/counterFlowFlame2D/1/usr_requirement.txt', custom_mesh_path=None, dataset_log_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/results/counterFlowFlame2D/1/dataset.jsonl', case_id='Basic/counterFlowFlame2D/1', model_config_path='/pscratch/sd/p/peijingx/ablation/experiment-finetuned/single_knockout/baseline_all_finetuned/model_config.json')

@@ -1,4 +1,7 @@
 # utils.py
+
+from datetime import datetime, timezone
+# utils.py
 import re
 import subprocess
 import os
@@ -825,8 +828,46 @@ class LLMService:
         }
         with self._dataset_log_lock:
             os.makedirs(os.path.dirname(self.dataset_log_path), exist_ok=True)
-            with open(self.dataset_log_path, "a") as f:
+            with open(self.dataset_log_path, "a", encoding="utf-8") as f:
                 f.write(_json.dumps(record, ensure_ascii=False) + "\n")
+
+            dataset_dir = os.path.dirname(self.dataset_log_path)
+            substep_root = os.path.join(dataset_dir, "substep_responses")
+            step_dir = self._slugify_for_path(record.get("step", ""), fallback="unknown_step")
+            substep_dir = self._slugify_for_path(record.get("substep", ""), fallback="unknown_substep")
+            target_dir = os.path.join(substep_root, step_dir, substep_dir)
+            os.makedirs(target_dir, exist_ok=True)
+
+            from datetime import datetime, timezone
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+            loop_iteration = int(record.get("loop_iteration", 0) or 0)
+            file_target = record.get("file_target", "")
+            target_part = self._slugify_for_path(file_target, fallback="")
+            base_name = f"iter{loop_iteration:03d}__{ts}"
+            if target_part:
+                base_name += f"__{target_part}"
+
+            io_payload = {
+                "meta": {
+                    "case_id": self.case_id,
+                    "step": record.get("step", ""),
+                    "substep": record.get("substep", ""),
+                    "loop_iteration": loop_iteration,
+                    "file_target": file_target,
+                    "service": service,
+                    "model": record["model"],
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "timestamp": record["timestamp"],
+                },
+                "system_prompt": system_prompt or "",
+                "user_prompt": user_prompt,
+                "response": response,
+            }
+
+            json_path = os.path.join(target_dir, f"{base_name}.json")
+            with open(json_path, "w", encoding="utf-8") as f:
+                _json.dump(io_payload, f, ensure_ascii=False, indent=2)
 
     def invoke(self,
                service: str,
@@ -912,6 +953,32 @@ class LLMService:
                         response_content, service, prompt_tokens, completion_tokens,
                         model_version=effective_model["model_version"],
                     )
+
+                # Debug trace logging (inputs + outputs per substep)
+                try:
+                    trace_root = os.environ.get("FOAMAGENT_TRACE_ROOT", "./substep_responses")
+                    trace_substep = (log_context or {}).get("substep", service)
+                    case_id = self.case_id or "unknown_case"
+                    safe_case = case_id.replace("/", "__")
+                    out_dir = os.path.join(trace_root, trace_substep)
+                    os.makedirs(out_dir, exist_ok=True)
+                    out_path = os.path.join(out_dir, f"{safe_case}.jsonl")
+                    rec = {
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                        "service": service,
+                        "substep": trace_substep,
+                        "model_version": effective_model["model_version"],
+                        "case_id": case_id,
+                        "messages": messages,
+                        "response": response_content,
+                        "log_context": log_context or {},
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                    }
+                    with open(out_path, "a", encoding="utf-8") as tf:
+                        tf.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                except Exception:
+                    pass
 
                 return response
                 
@@ -1443,6 +1510,10 @@ def parse_directory_structure(data: str) -> dict:
             directory_file_counts[dir_name] = len(file_list)
 
     return directory_file_counts
+
+
+
+
 
 
 

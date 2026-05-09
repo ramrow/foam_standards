@@ -32,13 +32,14 @@ export FOAMAGENT_FORCE_LOCAL_RUN=1
 unset FOAMAGENT_FORCE_HPC_RUN
 
 RUN_NAME="${1:-}"
+RUN_TAG="${2:-default}"
 if [[ -z "$RUN_NAME" ]]; then
   echo "ERROR: Missing run name. Use baseline or knockout_<substep>"
   exit 1
 fi
 
 CFG_DIR="./9-substeps-exp/single_knockout_configs"
-OUT_ROOT_BASE="$ROOT/experiment-finetuned/single_knockout"
+OUT_ROOT_BASE="$ROOT/experiment-finetuned-${RUN_TAG}/single_knockout"
 
 if [[ "$RUN_NAME" == "baseline" ]]; then
   CFG_PATH="./9-substeps-exp/finetuned_models.json"
@@ -68,7 +69,7 @@ vllm serve "$BASE_MODEL" \
   --enable-lora \
   --max-lora-rank 32 \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
-  --override-generation-config '{"temperature": 0.1, "repetition_penalty": 1.2, "top_p": 1.0}' \
+  --override-generation-config '{"repetition_penalty": 1.1}' \
   --lora-modules \
     parse_case_info=${VENV_ROOT}/nemo/parse_case_info/final_adapter \
     build_advice=${VENV_ROOT}/nemo/build_advice/final_adapter \
@@ -79,7 +80,7 @@ vllm serve "$BASE_MODEL" \
     error_analysis=${VENV_ROOT}/nemo/error_analysis/final_adapter \
     rewrite_plan=${VENV_ROOT}/nemo/rewrite_plan/final_adapter \
     rewrite_files=${VENV_ROOT}/nemo/rewrite_files/final_adapter \
-  > "$ROOT/9-substeps-exp/vllm_one_${RUN_NAME}.log" 2>&1 &
+  > "$ROOT/9-substeps-exp/vllm_one_${RUN_NAME}_${RUN_TAG}.log" 2>&1 &
 VLLM_PID=$!
 trap 'kill "$VLLM_PID" 2>/dev/null || true' EXIT
 
@@ -126,3 +127,4 @@ python benchmark_finetuned.py \
 
 echo "[5/5] Done: $RUN_NAME"
 echo "Output root: $OUT_ROOT"
+

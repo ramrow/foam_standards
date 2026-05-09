@@ -804,28 +804,46 @@ class LLMService:
         time.sleep(sleep_time)
         
         return retry_count
+
+
+    def _slugify_for_path(self, value: str, fallback: str = "unknown") -> str:
+        """Convert arbitrary text into a safe filesystem path segment."""
+        text = (value or "").strip()
+        if not text:
+            return fallback
+        text = re.sub(r"[^A-Za-z0-9._-]+", "_", text)
+        text = text.strip("._-")
+        return text or fallback
     
     def _log_dataset_record(self, log_context: dict, system_prompt: str,
                             user_prompt: str, response: str, service: str,
                             prompt_tokens: int, completion_tokens: int,
                             model_version: str = "") -> None:
-        """Append a JSONL record for fine-tuning dataset extraction (thread-safe)."""
+        """Append JSONL + write per-substep input/output artifacts (thread-safe)."""
         import json as _json
         from datetime import datetime, timezone
+
+        now = datetime.now(timezone.utc)
+        step = log_context.get("step", "")
+        substep = log_context.get("substep", "")
+        loop_iteration = int(log_context.get("loop_iteration", 0) or 0)
+        file_target = log_context.get("file_target", "")
+
         record = {
             "case_id": self.case_id,
-            "step": log_context.get("step", ""),
-            "substep": log_context.get("substep", ""),
-            "loop_iteration": log_context.get("loop_iteration", 0),
-            "file_target": log_context.get("file_target", ""),
+            "step": step,
+            "substep": substep,
+            "loop_iteration": loop_iteration,
+            "file_target": file_target,
             "system_prompt": system_prompt or "",
             "user_prompt": user_prompt,
             "response": response,
             "model": model_version or self.models[service]["model_version"],
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": now.isoformat(),
         }
+
         with self._dataset_log_lock:
             os.makedirs(os.path.dirname(self.dataset_log_path), exist_ok=True)
             with open(self.dataset_log_path, "a", encoding="utf-8") as f:
@@ -833,15 +851,12 @@ class LLMService:
 
             dataset_dir = os.path.dirname(self.dataset_log_path)
             substep_root = os.path.join(dataset_dir, "substep_responses")
-            step_dir = self._slugify_for_path(record.get("step", ""), fallback="unknown_step")
-            substep_dir = self._slugify_for_path(record.get("substep", ""), fallback="unknown_substep")
+            step_dir = self._slugify_for_path(step, fallback="unknown_step")
+            substep_dir = self._slugify_for_path(substep, fallback="unknown_substep")
             target_dir = os.path.join(substep_root, step_dir, substep_dir)
             os.makedirs(target_dir, exist_ok=True)
 
-            from datetime import datetime, timezone
-            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-            loop_iteration = int(record.get("loop_iteration", 0) or 0)
-            file_target = record.get("file_target", "")
+            ts = now.strftime("%Y%m%dT%H%M%S.%fZ")
             target_part = self._slugify_for_path(file_target, fallback="")
             base_name = f"iter{loop_iteration:03d}__{ts}"
             if target_part:
@@ -850,8 +865,8 @@ class LLMService:
             io_payload = {
                 "meta": {
                     "case_id": self.case_id,
-                    "step": record.get("step", ""),
-                    "substep": record.get("substep", ""),
+                    "step": step,
+                    "substep": substep,
                     "loop_iteration": loop_iteration,
                     "file_target": file_target,
                     "service": service,
@@ -869,7 +884,7 @@ class LLMService:
             with open(json_path, "w", encoding="utf-8") as f:
                 _json.dump(io_payload, f, ensure_ascii=False, indent=2)
 
-    def invoke(self,
+    def invoke(def invoke(self,
                service: str,
                user_prompt: str,
                system_prompt: Optional[str] = None,

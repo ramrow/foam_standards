@@ -884,7 +884,7 @@ class LLMService:
             with open(json_path, "w", encoding="utf-8") as f:
                 _json.dump(io_payload, f, ensure_ascii=False, indent=2)
 
-    def invoke(def invoke(self,
+    def invoke(self,
                service: str,
                user_prompt: str,
                system_prompt: Optional[str] = None,

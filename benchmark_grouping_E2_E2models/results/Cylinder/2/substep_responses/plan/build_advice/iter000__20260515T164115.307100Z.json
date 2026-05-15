@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "case_id": "Basic/Cylinder/2",
+    "step": "plan",
+    "substep": "build_advice",
+    "loop_iteration": 0,
+    "file_target": "",
+    "service": "plan",
+    "model": "e2_m1",
+    "prompt_tokens": 420,
+    "completion_tokens": 201,
+    "timestamp": "2026-05-15T16:41:15.307100+00:00"
+  },
+  "system_prompt": "You are a CFD expert. Based on the user requirement and the retrieved similar cases, produce a concise usage guidance. If no suitable case is available, set match_level to 'none' and advise not to rely on similar case templates.",
+  "user_prompt": "User requirement:\ndo a laminar offsetcylinder simulation. Use PIMPLE algorithm with a generalized Newtonian model and Cross-Power-Law viscosity for momentum transport, characterized by specific parameters nuInf=10, m=0.4, n=3. Boundary conditions specify a fixed velocity of 1.5m/s at the inlet (left),zero gradient pressure at the outlet (right), and no-slip conditions for walls, including the cylinder surface. Use timestep of 0.0025 and output every 0.05. Finaltime is 0.5. use constant viscosity model with nu value of 1e-03 in physical properties.\n\nCase info:\ncase name: offsetCylinder\ncase domain: incompressible\ncase category: laminar\ncase solver: pimpleFoam\n\nSelected similar case:\noffsetCylinder | incompressible | laminar | pimpleFoam | score=1.1677930160658434e-06\n\nTop candidates:\n- offsetCylinder | incompressible | laminar | pimpleFoam | score=1.1677930160658434e-06\n- movingCone | incompressible | laminar | pimpleFoam | score=0.23183076083660126\n- elipsekkLOmega | incompressible | RAS | pimpleFoam | score=0.2615102529525757\n- planarCouette | incompressible | laminar | pimpleFoam | score=0.28587105870246887\n- nonConformalChannel | incompressible | laminar | pimpleFoam | score=0.3043302893638611\n\nReturn JSON with keys: match_level (high/medium/low/none), use_scope, advice.",
+  "response": "match_level='high' use_scope='All configuration files from the reference offsetCylinder case can be used as direct templates, including system/controlDict (adjust deltaT to 0.0025, writeInterval to 0.05, endTime to 0.5), system/fvSolution (PIMPLE settings), constant/momentumTransport (generalizedNewtonian with CrossPowerLaw: nuInf=10, m=0.4, n=3), constant/physicalProperties (constant nu = 1e-03), and 0/ boundary condition files (inlet U fixedValue 1.5 m/s, outlet p zeroGradient, walls and cylinder noSlip).' advice=\"Use the matched offsetCylinder tutorial case as a full template: adopt its directory structure, mesh, and PIMPLE solver setup directly, then override controlDict timing parameters, momentumTransport properties (CrossPowerLaw coefficients), physicalProperties viscosity, and inlet velocity magnitude to match the user's specifications.\""
+}

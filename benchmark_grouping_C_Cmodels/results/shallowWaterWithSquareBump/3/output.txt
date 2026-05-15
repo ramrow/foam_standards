@@ -75,29 +75,36 @@ Errors detected in the Allrun execution.
 
 ## Error Analysis
 
-The error occurs in `constant/gravitationalProperties`:
+The error occurs in `constant/gravitationalProperties`. The solver expects the gravitational acceleration `g` to be specified as a **vector** (since it reads it as a `VectorSpace`), but it is currently defined as a **scalar** value `9.81`.
 
+### Current (incorrect) format:
 ```
-Expected a '(' while reading VectorSpace<Form, Cmpt, Ncmpts>, found on line 10 the doubleScalar 9.81
+g               g [ 0 1 -2 0 0 0 0 ] 9.81;
 ```
 
-This means the `shallowWaterFoam` solver expects `g` to be specified as a **vector** (since it reads it as a `VectorSpace`), but the current file defines it as a scalar value (`9.81`). In the squareBump reference tutorial, `gravitationalProperties` should define `g` as a vector.
+This defines `g` as a scalar magnitude, but `shallowWaterFoam` internally treats `g` as a vector quantity (the gravity direction/magnitude).
 
-### Root Cause
+### Required fix:
 
-In `squareBump/tutorials/shallowWaterFoam/gravitationalProperties`, the `g` entry is defined as:
+Change the `gravitationalProperties` file so that `g` is specified as a **dimensioned vector**:
 
 ```
 g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
 ```
 
-However, in the current setup, `g` is defined as a scalar magnitude `9.81`. The `shallowWaterFoam` solver requires `g` to be a **uniform dimensioned vector**, i.e., `(0 0 -9.81)` — gravity acts in the negative z-direction.
+That is, wrap the scalar value `9.81` inside parentheses to make it a vector `(0 0 -9.81)`. This tells OpenFOAM that `g` has dimensions `[0 1 -2 ...]` (acceleration) and is the vector `(0, 0, -9.81)` — i.e., gravity acting in the negative z-direction.
 
-## Proposed Fixes
+Alternatively, some versions accept the shorthand where the vector components are listed after the dimension specification without additional brackets:
 
-### 1. Fix `constant/gravitationalProperties`
+```
+g               g [ 0 1 -2 0 0 0 0 ] 0 0 -9.81;
+```
 
-Change the `g` entry from:
+Either format works — the key point is that `g` must be read as a vector, not a scalar.
+
+## Summary of Changes
+
+In `constant/gravitationalProperties`, change the line defining `g` from:
 ```
 g               g [ 0 1 -2 0 0 0 0 ] 9.81;
 ```
@@ -105,28 +112,12 @@ to:
 ```
 g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
 ```
-
-This makes `g` a proper dimensioned vector where the direction is downward along the z-axis (consistent with the coordinate system used in the squareBump tutorial).
-
-### 2. Clean up boundary patch naming inconsistency in `constant/h0.orig`
-
-There is a mismatch between patch names. The `blockMeshDict` defines patches named `top` and `bottom`, but `h0.orig` references `topAndBottom`. This may cause issues when the solver tries to look up boundary conditions. Either:
-
-- Rename the `topAndBottom` entries in `h0.orig` to match `top` and `bottom`, OR
-- Since `top` and `bottom` are defined as `empty` type in `blockMeshDict`, change them in `h0.orig` to also be `type empty;` (which they already are), just ensure the patch name matches exactly what `blockMeshDict` defines.
-
-### Summary
-
-The primary fix is updating `gravitationalProperties` so that `g` is a vector `(0 0 -9.81)`. All other files appear consistent with the user requirements and the squareBump reference case.
 *** service=review, model_version=c_review ***
-Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Change g from scalar 9.81 to vector (0 0 -9.81)'}, {'file': 'constant/h0.orig', 'changes': 'Rename topAndBottom patch to top and bottom to match blockMeshDict patch names'}, {'file': '0/h.orig', 'changes': 'Rename topAndBottom patch to top and bottom to match blockMeshDict patch names'}, {'file': '0/hU.orig', 'changes': 'Rename topAndBottom patch to top and bottom to match blockMeshDict patch names'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Change g from scalar 9.81 to vector format: replace g [ 0 1 -2 0 0 0 0 ] 9.81 with g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81)'}]}
 Loop 1: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=c_write ***
 Saved file at /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/constant/gravitationalProperties
-Saved file at /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/constant/h0.orig
-Saved file at /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/0/h.orig
-Saved file at /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/0/hU.orig
 Router: HPC disabled for ablation. Routing to local_runner node.
 ============================== Runner ==============================
 Removed files with prefix 'log' in /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3
@@ -143,45 +134,59 @@ Errors detected in the Allrun execution.
 
 ## Error Analysis
 
-The error is clear:
+The error message is clear:
 
 ```
 keyword rotating is undefined in dictionary "constant/gravitationalProperties"
 ```
 
-The `shallowWaterFoam` solver expects a `rotating` keyword in the `gravitationalProperties` dictionary. Looking at the squareBump reference tutorial's `gravitationalProperties`, it contains additional entries beyond just `g`. Specifically, it needs a `rotating` keyword (and likely other related keywords like `magg` if rotation is involved).
+The `shallowWaterFoam` solver expects a `rotating` keyword in the `gravitationalProperties` dictionary. Looking at the current `gravitationalProperties` file, it only contains the `g` entry but is missing several other required entries that the solver looks up.
 
-Looking at the actual squareBump tutorial `gravitationalProperties` file, it typically includes something like:
+Looking at the reference squareBump tutorial's `constant/gravitationalProperties`, the solver requires additional keywords beyond just `g`. Based on experience with `shallowWaterFoam`, the typical `gravitationalProperties` file should include:
+
+- `g` — gravitational acceleration vector
+- `rotating` — logical flag indicating whether the simulation includes Coriolis effects (typically `no`)
+- `Omega` — angular velocity vector (required if `rotating` is `yes`)
+- Possibly other entries depending on the solver version
+
+Since the user requirement specifies a simple non-rotating shallow water simulation, we should add the minimum required entries.
+
+## Proposed Solution
+
+Modify `constant/gravitationalProperties` to include the missing `rotating` keyword (and likely other expected entries). Add the following entries to the file:
 
 ```
+rotating        no;
+
+Omega         Omega [ 0 0 -1 0 0 0 0 ] (0 0 0);
+```
+
+So the complete file would look like:
+
+```
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      gravitationalProperties;
+}
+
 g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
+
 rotating        no;
-magg            magg [ 0 1 -2 0 0 0 0 ];
-Omega           Omega [ 0 0 -1 0 0 0 0 ] (0 0 0);
+
+Omega         Omega [ 0 0 -1 0 0 0 0 ] (0 0 0);
 ```
 
-Since this is a non-rotating shallow water simulation (the user requirement doesn't mention any Coriolis effects or rotation), we need to add the `rotating` keyword set to `no`.
+Key additions:
+1. **`rotating no;`** — This is the keyword the error explicitly requests. Setting it to `no` disables Coriolis force effects, which is appropriate for this non-rotating shallow water case.
+2. **`Omega`** — While not causing an immediate error, having this defined consistently avoids potential downstream issues. It represents the rotation rate (zero for non-rotating case).
 
-## Proposed Fix
-
-### Add `rotating` keyword to `constant/gravitationalProperties`
-
-Add the following entry to the `gravitationalProperties` file:
-
-```
-rotating        no;
-```
-
-This tells the `shallowWaterFoam` solver that there is no Coriolis effect (non-rotating frame), which is appropriate for this simulation. The complete `gravitationalProperties` file should contain:
-
-```
-g               g [ 0 1 -2 0 0 0 0 ] (0 0 -9.81);
-rotating        no;
-```
-
-All other files appear correctly configured based on the previous fixes and the user requirements.
+These entries are consistent with what the `shallowWaterFoam` solver typically expects from the `squareBump` tutorial reference case.
 *** service=review, model_version=c_review ***
-Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Add rotating no; after the g entry'}]}
+Rewrite plan: {'target_files': [{'file': 'constant/gravitationalProperties', 'changes': 'Add rotating no; after the g entry; Add Omega Omega [ 0 0 -1 0 0 0 0 ] (0 0 0); after the rotating entry'}]}
 Loop 2: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=c_write ***
@@ -195,7 +200,7 @@ Running Allrun (attempt 1/1)
 Executing script /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/Allrun in /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3
 Executed script /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/Allrun
 Errors detected in the Allrun execution.
-[{'file': 'log.shallowWaterFoam', 'error_content': 'ERROR: \nkeyword div(phiv,hU) is undefined in dictionary "/pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/system/fvSchemes/divSchemes"\n\nfile: /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/system/fvSchemes/divSchemes from line 22 to line 24.\n\n    From function const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, bool, bool) const\n    in file db/dictionary/dictionary.C at line 831.\n\nFOAM exiting'}]
+[{'file': 'log.shallowWaterFoam', 'error_content': 'ERROR: \nkeyword div(phiv,hU) is undefined in dictionary "/pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/system/fvSchemes/divSchemes"\n\nfile: /pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3/system/fvSchemes/divSchemes from line 22 to line 23.\n\n    From function const Foam::entry& Foam::dictionary::lookupEntry(const Foam::word&, bool, bool) const\n    in file db/dictionary/dictionary.C at line 831.\n\nFOAM exiting'}]
 ============================== Reviewer Analysis ==============================
 *** service=review, model_version=c_review ***
 # Error Diagnosis
@@ -208,7 +213,7 @@ The error is:
 keyword div(phiv,hU) is undefined in dictionary ".../system/fvSchemes/divSchemes"
 ```
 
-The `shallowWaterFoam` solver requires a divergence scheme for `div(phiv,hU)`, but the current `fvSchemes` file only defines `div(phiCorr,hU)` and `div(phi,hU)`. The solver uses `phiv` (velocity flux) rather than `phi` (volumetric flux) for the convection of `hU`.
+The `shallowWaterFoam` solver requires a divergence scheme for `div(phiv,hU)`, but the current `fvSchemes` file only defines `div(phi,hU)`. The solver uses `phiv` (velocity flux) rather than `phi` (volumetric flux) for the convection of momentum `hU`.
 
 Looking at the current `divSchemes`:
 
@@ -216,38 +221,38 @@ Looking at the current `divSchemes`:
 divSchemes
 {
     default         none;
-    div(phiCorr,hU) Gauss linear;
-    div(phi,hU)     Gauss linear;
+    div(phi,hU)     Gauss linearUpwind grad(hU);
 }
 ```
 
-The scheme `div(phiv,hU)` is missing. In `shallowWaterFoam`, the convection term involves `phiv` (the velocity-based flux, not `phi`).
+The scheme `div(phi,hU)` is defined, but the solver is looking for `div(phiv,hU)`. Since `default` is set to `none`, any undefined divergence scheme will cause a fatal error.
 
-## Proposed Fix
+## Proposed Solution
 
-### Add the missing divergence scheme to `system/fvSchemes`
+Add the correct divergence scheme `div(phiv,hU)` to the `divSchemes` sub-dictionary in `system/fvSchemes`. There are two approaches:
 
-In the `divSchemes` sub-dictionary, add the entry:
-
-```
-div(phiv,hU)    Gauss linear;
-```
-
-So the updated `divSchemes` should be:
-
+**Option 1 (Recommended):** Replace the existing incorrect scheme with the correct one:
 ```
 divSchemes
 {
     default         none;
-    div(phiCorr,hU) Gauss linear;
-    div(phi,hU)     Gauss linear;
-    div(phiv,hU)    Gauss linear;
+    div(phiv,hU)    Gauss linearUpwind grad(hU);
 }
 ```
 
-This defines the required `div(phiv,hU)` keyword exactly as the error message requests. The `default none` setting ensures no other divergence schemes are added unless explicitly needed, and adding `div(phiv,hU) Gauss linear;` provides the exact keyword the solver is looking for.
+**Option 2:** Keep both schemes (safe approach):
+```
+divSchemes
+{
+    default         none;
+    div(phi,hU)     Gauss linearUpwind grad(hU);
+    div(phiv,hU)    Gauss linearUpwind grad(hU);
+}
+```
+
+The key fix is adding `div(phiv,hU)` since that is the exact keyword the solver is requesting. Option 1 is cleaner since `phi` and `phiv` serve different purposes — `phi` is the face-normal volumetric flux used for the continuity equation, while `phiv` is the face-normal momentum flux used for advecting the momentum field `hU`.
 *** service=review, model_version=c_review ***
-Rewrite plan: {'target_files': [{'file': 'system/fvSchemes', 'changes': 'Add div(phiv,hU) Gauss linear; entry to the divSchemes sub-dictionary'}]}
+Rewrite plan: {'target_files': [{'file': 'system/fvSchemes', 'changes': 'Replace div(phi,hU) with div(phiv,hU) in the divSchemes sub-dictionary'}]}
 Loop 3: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=c_write ***
@@ -284,30 +289,17 @@ none
 )
 ```
 
-The `h` field in `shallowWaterFoam` produces a **symmetric matrix** (since it's a scalar transport equation solved with a Laplacian solve in PIMPLE), but the preconditioner `DILU` (Diagonal Incomplete LU decomposition) is only valid for **asymmetric matrices**. For symmetric matrices, the correct counterpart is `DIC` (Diagonal Incomplete Cholesky).
+This error occurs because the `h` field (water depth) produces a **symmetric matrix** when solved, but the preconditioner `DILU` (Diagonal Incomplete LU decomposition) is only valid for **asymmetric** matrices. For symmetric matrices, the equivalent preconditioner is `DIC` (Diagonal Incomplete Cholesky).
 
-Looking at the `fvSolution` file, both `h` and `hU` solvers use `DILU` as their preconditioner. The `h` solver definitely needs to be changed to use `DIC` since its matrix is symmetric. The `hU` solver may also face the same issue depending on how the pressure-like equation couples, but since the error specifically mentions `h`, fixing `h` first is the priority.
+Looking at the `fvSolution` file, both `h` and `hU` solvers use `PBiCGStab` with `DILU` preconditioner. The `h` equation produces a symmetric matrix (since it's essentially a Laplacian-type solve), so `DILU` fails. The `hU` equation may also produce a symmetric matrix depending on the discretization.
 
-Additionally, looking at the current `fvSchemes`, the divergence schemes use `Gauss linear` which produces an asymmetric matrix. However, the Laplacian solve for `h` in `shallowWaterFoam` typically produces a symmetric matrix because it comes from a diffusion-type operation.
+## Proposed Solutions
 
-## Proposed Fixes
+### Fix for `h` solver preconditioner
 
-### 1. Fix `system/fvSolution` — Change preconditioner for `h` solver
+In `system/fvSolution`, change the preconditioner for the `h` solver (and consequently `hFinal` which inherits from it) from `DILU` to `DIC`:
 
-In the `solvers` sub-dictionary, change the preconditioner for the `h` solver from `DILU` to `DIC`:
-
-Current:
-```
-h
-{
-    solver          PBiCGStab;
-    preconditioner  DILU;
-    tolerance       1e-12;
-    relTol          0.01;
-}
-```
-
-Should be:
+For `h`:
 ```
 h
 {
@@ -318,17 +310,24 @@ h
 }
 ```
 
-The `hFinal` solver inherits from `$h`, so it will automatically pick up the `DIC` preconditioner as well.
+For `hFinal`:
+```
+hFinal
+{
+    $h;
+    relTol          0;
+}
+```
 
-### 2. Consider changing `hU` preconditioner too (if DILU error persists)
+### Consideration for `hU` solver
 
-If after fixing `h` the solver still fails on `hU`, the same issue applies. The `hU` solver could also be changed to use `DIC` instead of `DILU`. Alternatively, since `hU` might produce an asymmetric matrix (due to the convection terms involving `phiv`), `DILU` could potentially work — but if it fails, switch it to `DIC` as well.
+The `hU` equation involves convection (`div(phiv,hU)`) plus diffusion, which typically produces an **asymmetric** matrix. Therefore `DILU` should remain valid for `hU`. However, if after fixing `h` the solver still encounters issues with `hU`, the same approach could be applied there too — but the primary fix needed is for the `h` solver.
 
 ### Summary
 
-The primary fix is changing the preconditioner for the `h` solver from `DILU` to `DIC` in `system/fvSolution`. This is the standard practice for `shallowWaterFoam`: symmetric matrix solves require symmetric-compatible preconditioners like `DIC`, `FDIC`, `GAMG`, `diagonal`, or `none`.
+Only the `h` solver's preconditioner needs to change from `DILU` to `DIC`. The `hU` solver can keep `DILU` since its matrix assembly (with convection and boundary conditions) should result in an asymmetric system.
 *** service=review, model_version=c_review ***
-Rewrite plan: {'target_files': [{'file': 'system/fvSolution', 'changes': 'Change preconditioner for h solver from DILU to DIC; hFinal inherits from h so it will automatically use DIC as well'}]}
+Rewrite plan: {'target_files': [{'file': 'system/fvSolution', 'changes': 'Change preconditioner for h solver from DILU to DIC; hFinal inherits from h so it will also use DIC automatically'}]}
 Loop 4: Continuing to fix errors.
 ============================== Rewrite Mode ==============================
 *** service=write, model_version=c_write ***
@@ -348,12 +347,12 @@ Workflow completed successfully!
 Total calls: 29
 Failed calls: 0
 Total retries: 0
-Total prompt tokens: 61120
-Total completion tokens: 6839
-Total tokens: 67959
-Average prompt tokens per call: 2107.59
-Average completion tokens per call: 235.83
-Average tokens per call: 2343.41
+Total prompt tokens: 60472
+Total completion tokens: 5960
+Total tokens: 66432
+Average prompt tokens per call: 2085.24
+Average completion tokens per call: 205.52
+Average tokens per call: 2290.76
 
 </LLM Service Statistics>
 Namespace(openfoam_path='/global/cfs/cdirs/m4756/theseus/OpenFOAM-10', output='/pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/runs/shallowWaterWithSquareBump/3', prompt_path='/pscratch/sd/p/peijingx/troubleshoot/Dataset/Basic/shallowWaterWithSquareBump/3/usr_requirement.txt', custom_mesh_path=None, dataset_log_path='/pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/results/shallowWaterWithSquareBump/3/dataset.jsonl', case_id='Basic/shallowWaterWithSquareBump/3', model_config_path='/pscratch/sd/p/peijingx/troubleshoot/benchmark_grouping_C_Cmodels/model_config.json')

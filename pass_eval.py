@@ -1,19 +1,31 @@
 #!/usr/bin/env python3
-import argparse, json, os, subprocess, sys, time
+import argparse, json, subprocess, sys, time
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
 SUCCESS_MARKER = "Allrun executed successfully without errors."
 
-def run_once(root: Path, cfg: Path, out_root: Path, workers: int, port: int | None):
-    out_root.mkdir(parents=True, exist_ok=True)
-    cmd = [sys.executable, str(root / "benchmark_finetuned.py"), "--all_finetuned", "--finetuned_config", str(cfg), "--output_root", str(out_root), "--workers", str(workers)]
-    env = os.environ.copy()
-    if port is not None:
-        env["OPENAI_BASE_URL"] = f"http://127.0.0.1:{port}/v1"
-        env["OPENAI_API_BASE"] = f"http://127.0.0.1:{port}/v1"
-    p = subprocess.run(cmd, cwd=str(root), env=env)
+SCRIPT_MAP = {
+    "B": "run_grouping_B_benchmark.sh",
+    "C": "run_grouping_C_benchmark.sh",
+    "E2": "run_grouping_E2_benchmark.sh",
+}
+
+OUT_PREFIX = {
+    "B": "benchmark_grouping_B",
+    "C": "benchmark_grouping_C",
+    "E2": "benchmark_grouping_E2",
+}
+
+def run_shell_once(root: Path, group: str, trial_tag: str):
+    sh = root / SCRIPT_MAP[group]
+    if not sh.exists():
+        raise FileNotFoundError(f"Missing script: {sh}")
+    cmd = ["bash", str(sh), trial_tag]
+    print("RUN:", " ".join(cmd))
+    p = subprocess.run(cmd, cwd=str(root))
     if p.returncode != 0:
-        raise RuntimeError(f"benchmark failed: {p.returncode}")
+        raise RuntimeError(f"{sh.name} failed with code {p.returncode}")
+
 
 def collect_successes(results_root: Path):
     case_success = {}
@@ -23,65 +35,81 @@ def collect_successes(results_root: Path):
         case_success[cid] = SUCCESS_MARKER in txt
     return case_success
 
-def eval_group(root: Path, cfg: Path, group_name: str, trials: int, workers: int, stamp: str, port: int | None):
-    base = root / f"pass_eval_{group_name}_{stamp}"
-    run_rates, union_pass = [], {}
+
+def evaluate_group(root: Path, group: str, trials: int, stamp: str):
+    run_rates = []
+    union_pass = {}
+
     for i in range(1, trials + 1):
-        run_out = base / f"run{i}"
-        run_once(root, cfg, run_out, workers, port)
-        res = collect_successes(run_out / "results")
+        trial_tag = f"{stamp}_run{i}"
+        run_shell_once(root, group, trial_tag)
+
+        out_root = root / f"{OUT_PREFIX[group]}_{trial_tag}"
+        results_root = out_root / "results"
+        if not results_root.exists():
+            raise FileNotFoundError(f"Results folder missing: {results_root}")
+
+        res = collect_successes(results_root)
         total = len(res)
         succ = sum(1 for v in res.values() if v)
-        run_rates.append((succ / total) if total else 0.0)
+        rate = (succ / total) if total else 0.0
+        run_rates.append(rate)
+
         for c, ok in res.items():
             union_pass[c] = union_pass.get(c, False) or ok
+
+        print(f"[grouping_{group}] run{i}: {succ}/{total} ({rate*100:.2f}%)")
+
     total_cases = len(union_pass)
     pass3_success = sum(1 for v in union_pass.values() if v)
-    return {"group": group_name, "run_rates": run_rates, "pass1_avg_rate": sum(run_rates)/len(run_rates) if run_rates else 0.0, "pass3_success": pass3_success, "total_cases": total_cases, "pass3_rate": (pass3_success/total_cases) if total_cases else 0.0, "output_base": str(base)}
+
+    return {
+        "group": f"grouping_{group}",
+        "trials": trials,
+        "run_rates": run_rates,
+        "pass1_avg_rate": sum(run_rates) / len(run_rates) if run_rates else 0.0,
+        "pass3_success": pass3_success,
+        "total_cases": total_cases,
+        "pass3_rate": (pass3_success / total_cases) if total_cases else 0.0,
+        "pass3_success_cases": sorted([c for c, ok in union_pass.items() if ok]),
+        "output_prefix": OUT_PREFIX[group],
+    }
+
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default=".")
+    ap.add_argument("--root", default=".", help="debug/troubleshoot directory containing run_grouping_*.sh")
     ap.add_argument("--trials", type=int, default=3)
-    ap.add_argument("--workers", type=int, default=1)
-    ap.add_argument("--groups", nargs="*", default=["B","C","E2"], choices=["B","C","E2"])
-    ap.add_argument("--parallel", action="store_true")
-    ap.add_argument("--group-ports", nargs="*", default=[], help="e.g. B=8001 C=8002 E2=8003")
+    ap.add_argument("--groups", nargs="*", default=["B", "C", "E2"], choices=["B", "C", "E2"])
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
-    cfg_map = {"B": root / "grouping_B_finetuned_models.json", "C": root / "grouping_C_finetuned_models.json", "E2": root / "grouping_E2_finetuned_models.json"}
-    for g in args.groups:
-        if not cfg_map[g].exists():
-            raise FileNotFoundError(f"Missing config: {cfg_map[g]}")
-    port_map = {}
-    for kv in args.group_ports:
-        if "=" in kv:
-            k,v = kv.split("=",1)
-            try: port_map[k.strip()] = int(v.strip())
-            except: pass
-
     stamp = time.strftime("%Y%m%d_%H%M%S")
-    summary = {"timestamp": stamp, "groups": []}
 
-    if args.parallel:
-        with ThreadPoolExecutor(max_workers=len(args.groups)) as ex:
-            futs = [ex.submit(eval_group, root, cfg_map[g], f"grouping_{g}", args.trials, args.workers, stamp, port_map.get(g)) for g in args.groups]
-            for fut in as_completed(futs):
-                summary["groups"].append(fut.result())
-    else:
-        for g in args.groups:
-            summary["groups"].append(eval_group(root, cfg_map[g], f"grouping_{g}", args.trials, args.workers, stamp, port_map.get(g)))
+    summary = {"timestamp": stamp, "root": str(root), "groups": []}
+
+    for g in args.groups:
+        summary["groups"].append(evaluate_group(root, g, args.trials, stamp))
 
     out_json = root / f"pass_eval_summary_{stamp}.json"
     out_txt = root / f"pass_eval_summary_{stamp}.txt"
     out_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    lines = [f"Pass evaluation summary ({stamp})"]
+
+    lines = [f"Pass evaluation summary ({stamp})", "Uses grouping shell scripts per trial."]
     for g in summary["groups"]:
-        lines += ["", g["group"], f"  pass1 avg success rate: {g['pass1_avg_rate']*100:.2f}%", f"  run rates: {', '.join(f'{r*100:.2f}%' for r in g['run_rates'])}", f"  pass3 success: {g['pass3_success']}/{g['total_cases']} ({g['pass3_rate']*100:.2f}%)", f"  outputs: {g['output_base']}"]
+        lines += [
+            "",
+            g["group"],
+            f"  pass1 avg success rate: {g['pass1_avg_rate']*100:.2f}%",
+            f"  run rates: {', '.join(f'{r*100:.2f}%' for r in g['run_rates'])}",
+            f"  pass3 success: {g['pass3_success']}/{g['total_cases']} ({g['pass3_rate']*100:.2f}%)",
+            f"  output prefix: {g['output_prefix']}",
+        ]
     out_txt.write_text("\n".join(lines), encoding="utf-8")
-    print(out_json)
-    print(out_txt)
+
+    print(f"Wrote: {out_json}")
+    print(f"Wrote: {out_txt}")
+
 
 if __name__ == "__main__":
     main()

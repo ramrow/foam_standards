@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "case_id": "Basic/Cylinder/3",
+    "step": "plan",
+    "substep": "build_advice",
+    "loop_iteration": 0,
+    "file_target": "",
+    "service": "plan",
+    "model": "b_m2",
+    "prompt_tokens": 420,
+    "completion_tokens": 229,
+    "timestamp": "2026-05-17T10:48:38.121637+00:00"
+  },
+  "system_prompt": "You are a CFD expert. Based on the user requirement and the retrieved similar cases, produce a concise usage guidance. If no suitable case is available, set match_level to 'none' and advise not to rely on similar case templates.",
+  "user_prompt": "User requirement:\ndo a laminar offsetcylinder simulation. Use PIMPLE algorithm with a generalized Newtonian model and Cross-Power-Law viscosity for momentum transport, characterized by specific parameters nuInf=10, m=0.4, n=3. Boundary conditions specify a fixed velocity of 1.5m/s at the inlet (left),zero gradient pressure at the outlet (right), and no-slip conditions for walls, including the cylinder surface. Use timestep of 0.0025 and output every 0.05. Finaltime is 0.5. use constant viscosity model with nu value of 1e-02 in physical properties.\n\nCase info:\ncase name: offsetCylinder\ncase domain: incompressible\ncase category: laminar\ncase solver: pimpleFoam\n\nSelected similar case:\noffsetCylinder | incompressible | laminar | pimpleFoam | score=1.0634420277710888e-06\n\nTop candidates:\n- offsetCylinder | incompressible | laminar | pimpleFoam | score=1.0634420277710888e-06\n- movingCone | incompressible | laminar | pimpleFoam | score=0.2318081557750702\n- elipsekkLOmega | incompressible | RAS | pimpleFoam | score=0.2614668309688568\n- planarCouette | incompressible | laminar | pimpleFoam | score=0.2858645021915436\n- nonConformalChannel | incompressible | laminar | pimpleFoam | score=0.30430757999420166\n\nReturn JSON with keys: match_level (high/medium/low/none), use_scope, advice.",
+  "response": "match_level='high' use_scope=\"Use the offsetCylinder/incompressible/laminar/pimpleFoam reference case as the primary template for all files — system (controlDict, fvSchemes, fvSolution), constant (transportProperties, turbulenceProperties, polyMesh), and 0/ boundary condition files (U, p, alpha.water) — adjusting parameter values to match the user's specifications.\" advice='Directly adopt the offsetCylinder reference case structure and modify controlDict (deltaT=0.0025, writeInterval=0.05, endTime=0.5), constant/transportProperties (set simpleFoam steady-state transportProperties to constant nu=1e-02; update generalizedNewtonian Cross-Power-Law viscosityProperties with nu0=1e-02, tauStar=10, nPow=0.4 corresponding to Cross model parameters nuInf=10, m=0.4, n=3), and 0/U and 0/p boundary conditions (inlet U fixedValue 1.5 m/s, outlet zeroGradient p, all walls and cylinder noSlip).'"
+}

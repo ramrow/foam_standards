@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "case_id": "Basic/Cavity/2",
+    "step": "plan",
+    "substep": "build_advice",
+    "loop_iteration": 0,
+    "file_target": "",
+    "service": "plan",
+    "model": "c_plan",
+    "prompt_tokens": 481,
+    "completion_tokens": 232,
+    "timestamp": "2026-05-17T06:07:03.069617+00:00"
+  },
+  "system_prompt": "You are a CFD expert. Based on the user requirement and the retrieved similar cases, produce a concise usage guidance. If no suitable case is available, set match_level to 'none' and advise not to rely on similar case templates.",
+  "user_prompt": "User requirement:\ndo an incompressible lid driven cavity flow using pisoFoam. The cavity is a square with dimensions normalized to 1 unit on both the x and y axes and very thin in the z-direction (0.1 units) and entire domain scaled down by a factor of 0.1 making it effectively 2D. Use a grid of 20X20 in x and y direction and 1 cell in z-direction(due to the expected 2D flow characteristics). The top wall ('movingWall') moves in the x-direction with a uniform velocity of 1 m/s. The 'fixedWalls' have a no-slip boundary condition (velocity equal to zero at the wall). The front and back faces are designated as 'empty'. The simulation runs from time 0 to 10 with a time step of 0.005 units, and results are output every 100 time steps. The viscosity (`nu`) is set as constant with a value of 1e-05 m^2/s. use k epsilon urbulence model.\n\nCase info:\ncase name: cavity\ncase domain: incompressible\ncase category: cavity\ncase solver: pisoFoam\n\nSelected similar case:\ncavity | incompressible | RAS | pisoFoam | score=0.0337526872754097\n\nTop candidates:\n- cavity | incompressible | RAS | pisoFoam | score=0.0337526872754097\n- cavityCoupledU | incompressible | RAS | pisoFoam | score=0.1227119043469429\n- cavity | incompressible | cavity | icoFoam | score=0.03300081938505173\n- cavityGrade | incompressible | cavity | icoFoam | score=0.09847845137119293\n- cavityClipped | incompressible | cavity | icoFoam | score=0.12630224227905273\n\nReturn JSON with keys: match_level (high/medium/low/none), use_scope, advice.",
+  "response": "match_level='high' use_scope=\"Use the selected RAS pisoFoam cavity case as the primary template for all files including 0/ (boundary conditions), constant/ (transportProperties, turbulenceProperties, polyMesh), and system/ (controlDict, fvSchemes, fvSolution); however, adapt turbulenceProperties to select the k-epsilon URBAN model instead of the default RAS model, and adjust mesh dimensions, movingWall velocity, nu, deltaT, endTime, writeInterval, and scaling factor according to the user's specifications.\" advice='Base the entire cavity pisoFoam setup on the matched RAS pisoFoam tutorial, but switch turbulenceProperties to the k-epsilon URBAN model, set the mesh to 20x20x1 cells over a 0.1x0.1x0.01 domain (scaled by 0.1), configure movingWall with U=(1 0 0), fixedWalls with U=(0 0 0), set transportProperties nu=1e-05, controlDict deltaT=0.005 endTime=10 writeInterval=100.'"
+}

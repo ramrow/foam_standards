@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -euo pipefail
 
 ROOT="/pscratch/sd/p/peijingx/troubleshoot"
@@ -7,13 +7,13 @@ VENV_ROOT="/pscratch/sd/p/peijingx/ablation"
 source "${VENV_ROOT}/.venv/bin/activate"
 cd "$ROOT"
 
-BASE_MODEL="ghzlmc/gemma4-26b-a4b-unified"
+BASE_MODEL="ghzlmc/nemotron-3-nano-30b-unified"
 PORT="${PORT:-8000}"
 RUN_TAG="${1:-default}"
 
 CFG_PATH="$ROOT/grouping_unified_nemo_models.json"
 OUT_ROOT="$ROOT/benchmark_unified_nemo_${RUN_TAG}"
-LOG_PATH="$ROOT/vllm_unified_gemma_${RUN_TAG}.log"
+LOG_PATH="$ROOT/vllm_unified_nemo_${RUN_TAG}.log"
 
 source "${VENV_ROOT}/secrets/openai_env.sh"
 
@@ -38,7 +38,7 @@ if [[ ! -f "$CFG_PATH" ]]; then
 fi
 mkdir -p "$OUT_ROOT"
 
-echo "[1/4] Starting vLLM (unified gemma)..."
+echo "[1/4] Starting vLLM (unified nemo)..."
 vllm serve "$BASE_MODEL" \
   --host 127.0.0.1 \
   --port ${PORT} \

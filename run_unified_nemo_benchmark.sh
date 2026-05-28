@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -euo pipefail
 
 ROOT="/pscratch/sd/p/peijingx/troubleshoot"
